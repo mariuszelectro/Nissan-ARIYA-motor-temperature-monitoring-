@@ -1,4 +1,5 @@
 # Nissan Ariya Electric Motor Temperature Monitor
+[![Kup mi kawę](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=mariuszelectro&button_colour=FFDD00&font_colour=000000&font_family=Poppins&outline_colour=000000&coffee_colour=ffffff)](https://www.buymeacoffee.com/mariuszelectro)
 
 This project aims to create an independent system to monitor the electric motor's temperature in a Nissan Ariya. The system is designed to prevent sudden vehicle shutdowns caused by overheating.
 
