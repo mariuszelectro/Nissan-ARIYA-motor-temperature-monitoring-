@@ -14,10 +14,10 @@ The transmitter is the core of the system, focusing on advanced data analysis an
     1.  A dedicated input for a **PT100** sensor.
     2.  An input for a digital **DS18B20** sensor.
     3.  A power input ranging from **12-16V** from the car's on-board network.
-* **Power Management:** A comparator-based circuit monitors the 12V battery voltage. The system activates at **13.6V** and enters a low-power sleep mode at **12.9V** (with hysteresis), consuming only 3µA.
+* **Power Management:** A comparator-based circuit monitors the 12V battery voltage. The system activates at **13.6V** and enters a low-power sleep mode at **12.9V** (with hysteresis), consuming only 3µA in standby mode and 30mA in opertional mode 
 
 #### Measurement Circuitry
-* **PT100 Measurement:** The input circuit consists of a Wheatstone bridge with three **105R resistors** (0.1% tolerance). This specific resistance value was chosen because the project focuses on temperatures **above 15°C**. The bridge is powered by a ~2mA current source, and the resulting voltage signal is amplified by an instrumental amplifier.
+* **PT100 Measurement:** The input circuit consists of a Wheatstone bridge with three **105R resistors** (0.1% tolerance, low ppm). This specific resistance value was chosen because the project focuses on temperatures **above 15°C**. The bridge is powered by a ~2mA current source, and the resulting voltage signal is amplified by an instrumental amplifier.
 * **Signal Conversion:** The voltage is converted to a **0-12V** level and then fed through a voltage divider to the measurement input of a **XIAO nRF52840** module.
 * **Data Processing:** The XIAO module samples the voltage every few milliseconds, applies filtering and advanced averaging, and then converts the voltage value into a temperature reading. It also handles the digital DS18B20 sensor.
 
