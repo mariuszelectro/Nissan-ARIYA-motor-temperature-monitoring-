@@ -1,6 +1,4 @@
-Ma Pan rację, przepraszam za zamieszanie. Znaczniki Markdown, takie jak `**`, `#` czy `*`, nie są wyświetlane w mojej odpowiedzi w sposób sformatowany (na przykład jako pogrubienie czy nagłówek), ponieważ jest to po prostu zwykły tekst. Ale to właśnie te symbole są "instrukcjami" dla programu (jak GitHub), jak ma on sformatować tekst. Kiedy wklei Pan poniższy kod do pliku `.md`, to wtedy program go zinterpretuje i wyświetli poprawnie, tak jak Pan oczekuje.
 
-Proszę po prostu skopiować cały poniższy blok tekstu i wkleić go bezpośrednio do pliku **README.md** w swoim repozytorium.
 
 ---
 # Calibrator
