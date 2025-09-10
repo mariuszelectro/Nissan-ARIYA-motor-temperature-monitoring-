@@ -13,7 +13,7 @@ The Nissan Ariya has a serious software flaw that can lead to dangerous situatio
 ### Key Features
 
 * **Dual Temperature Sensors:** The system uses two diffrent sensors for precise temperature measurement. First Analg PT100, second digital DS18B20
-* **Wireless Data Transmission:** Temperature status is sent wirelessly in real-time, BLE
+* **Wireless Data Transmission:** Temperature status is sent wirelessly in real-time, trough BLE
 * **Temperature Trend Analysis:** The software analyzes the rate of temperature increase, not just the current temperature level, which helps predict potential overheating events.
 * **Fast Data Refresh:** Status information is refreshed and analyzed in less than one second.
 * **Receiver Unit:** The receiver is equipped with a 1.69" LCD, a buzzer for alerts, a barometric pressure sensor to display altitude, and an inclinometer to show the road's tilt.
