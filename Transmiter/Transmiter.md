@@ -39,7 +39,7 @@ Although using a single, digital **DS18B20** sensor would simplify the circuit, 
 
 #### Communication and Housing
 * **BLE Beacon Mode:** The XIAO module operates as a BLE "beacon," transmitting measurement data, alarm flags, fan status, and a running counter as dynamic advertising data. This allows it to be tracked with a standard Bluetooth scanner on a phone.
-* **Debug Mode:** When connected, the module enters a debug mode ("pory szefowe" - "boss mode"), sending data to the Bluefruit Connect application to generate plots from both sensors.
+* **Debug Mode:** When connected, the module enters a debug mode (SSP BLE profile ), sending data to the Bluefruit Connect application to generate plots on canvas, from both sensors.
 * **Antenna:** The custom PCB version includes a modified antenna layout with a u.FL connector for an external antenna, providing better range than the factory one.
 * **Enclosure:** The housing is 3D printed using MJF technology with black nylon powder, resulting in a very solid and durable enclosure with 3mm thick walls, labyrinthine seals, and cable holders.
 * **Availability:** The PCB schematic and layout will be published soon. While others can print the model using different technologies, the precise fit and accuracy of the MJF process may not be achievable.
