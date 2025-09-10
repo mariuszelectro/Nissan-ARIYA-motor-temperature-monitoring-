@@ -17,7 +17,7 @@ The Nissan Ariya has a serious software flaw that can lead to dangerous situatio
 * **Temperature Trend Analysis:** The software analyzes the rate of temperature increase, not just the current temperature level, which helps predict potential overheating events.
 * **Fast Data Refresh:** Status information is refreshed and analyzed in less than one second.
 * **Receiver Unit:** The receiver is equipped with a 1.69" LCD, a buzzer for alerts, a barometric pressure sensor to display altitude, and an inclinometer to show the road's tilt.
-* **Receiver function:** The receiver present tempeperature as osciloscope digram for easy undertand trends, alitude, and road's tilt.
+* **Receiver function:** The receiver present tempeperature as osciloscope digram for easy understand trends, alitude, and road's tilt.
 * **Smart Functions:** A photoresistor automatically adjusts the display's brightness and can also be used as a button to silence the alarm.
 * **Calibrator:** Optional Third party used for calibrate sensors.
 * **Custom Housing:** All enclosures were designed using 3D modeling and are printed with MJF technology using Nylon for durability.
