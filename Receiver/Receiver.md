@@ -95,13 +95,13 @@
 
 * **Buzzer Operation:**
     * **Characteristics:** Active and dynamic.
-    * **Dependencies:** The tone and length of the generated sound depend on the type of alarm and any further temperature increase. The duration of each beep is variable.
+    * **Dependencies:** The tone and length of the generated sound depend on the type of alarm and any further temperature increase. The duration and tone of each beep is variable.
 
 * **Sensor Calibration:**
     * **Sensor Types:** Barometric and position (gyroscope/accelerometer).
     * **Calibration Methods:**
         1.  **Button Press:** Manual calibration activation.
-        2.  **Signal Reception:** Automatic calibration upon receiving a signal from a dedicated calibration beacon.
+        2.  **Signal Reception:** Automatic calibration upon receiving a signal from a dedicated calibration beacon "Calibrator"
     * **Calibration Process:**
         * **Inclinometer:** Zeros the incline angle readings to a zero position, regardless of the device's current orientation.
         * **Pressure:** Compensates absolute pressure for a fixed altitude of 270 meters above sea level.
