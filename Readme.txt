@@ -4,7 +4,7 @@ Version: 2.3.6
 Date: 2025-04-09T11:26:55.498Z
 CLI Version: 1.2.0
 ------------------
-Compile and Editor Eclipse C++ and https://marketplace.eclipse.org/content/sloeber-arduino-plugin-eclipse 
+Compile and Editor Eclipse C++ and extension Sloeber https://marketplace.eclipse.org/content/sloeber-arduino-plugin-eclipse 
 --------------------------------------------
 platform Seeed nRF52 boards version 1.1.10  (sense version) for receiver (need high performance of display by SPI) 
 --------------------------------------------
@@ -27,5 +27,6 @@ ardiuno-NVM by frank Holz 0.9.1 (with source code deep modyfication) for future 
 -----------------------------------------------------------------------------------
 platform  Seeed nRF52 mbebd enabled Boards 2.9.3 (for transmiter) 
 platform Seeed nRF52 boards version 1.1.10 (for calibrator) 
+
 
 
