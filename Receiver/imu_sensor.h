@@ -24,7 +24,7 @@ bool imu_init();
  * @brief Kalibruje czujnik IMU. Musi być wywoływana w pętli.
  * @return true jeśli kalibracja została zakończona, false w przeciwnym razie.
  */
-bool Call_IMU_Calibration();
+bool Call_IMU_Calibration(int write);
 
 /**
  * @brief Odczytuje uśrednione dane z IMU i zwraca obliczone kąty.
@@ -38,5 +38,8 @@ bool readIMUData(IMUData* data);
  * Nalezy wywolywac w petli glownej.
  */
 void CollectImu(void);
+
+bool LoadImuCalibration(void);
+void setCallIMUasZero(void);
 
 #endif

@@ -44,8 +44,15 @@ void setup() {
   currentDisplayData.MainCalibrate.CalibrationConuter = 20;
 
   Serial.begin(115200);
-  //while (!Serial);
-  Serial.println("Starting application...");
+  int counterWait=0;
+    
+  while (!Serial && counterWait<10)
+  {
+    delay(100); 
+    counterWait++;
+  }
+
+  Serial.println("-----------------------------------Starting application--------------------------------------");
 
   Serial.println("Inicjalizacja LCD...");
   LCD_init();
@@ -72,6 +79,17 @@ void setup() {
     Serial.println(F("Inicjalizacja IMU nie powiodla sie!"));
   } else {
     Serial.println(F("IMU zainicjalizowany pomyslnie."));
+  }
+  if(LoadImuCalibration()==false)
+  {
+    int i;
+    for(i=0;i<4;i++)
+    {
+      int timeTone=200;
+      tone(BUZZER_PIN, 750, timeTone);
+      delay(timeTone*2);
+    }
+    setCallIMUasZero();  
   }
   // --- WYWOŁANIE FUNKCJI INICJALIZUJĄCEJ BLUETOOTH ---
   ble_init();
@@ -110,8 +128,8 @@ void loop() {
       currentDisplayData.MainCalibrate.CalibrationConuter--;
       if (Button == true || currentDisplayData.MainCalibrate.RealCalibrate == true) {
         setAbsoluteHighest(270);  // Kalibracja wysokosci na 270m
-        Call_IMU_Calibration();   // Kalibracja zyroskopu;
-        Serial.print("calibaracja czujnikow]\n");
+        Call_IMU_Calibration(1);   // Kalibracja zyroskopu z zapisem do QSPI
+        Serial.print("kalibaracja czujnikow]\n");
         tone(BUZZER_PIN, 500, 100);
         currentDisplayData.MainCalibrate.RealCalibrate = true;
         if (Button == true) {
@@ -127,6 +145,7 @@ void loop() {
     if (Button == true) {
       static int countButton = 0;
       Serial.printf("Push Button %d\n", ++countButton);
+      tone(BUZZER_PIN, 1000, 10);
     }
     simulateSensorData(&currentDisplayData, currentTime);
     debugPrintSimulatedData(&currentDisplayData);
