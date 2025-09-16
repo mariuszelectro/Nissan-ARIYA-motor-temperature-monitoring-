@@ -32,7 +32,7 @@ Although using a single, digital **DS18B20** sensor would simplify the circuit, 
 ### Advanced Logic and Control
 * **Sensor Selection:** The system analyzes data from both sensors, always selecting the one that is available and has a higher temperature reading.
 * **Trend Analysis:** The software analyzes the temperature's upward trend, predicting its increase over a **30-second period**.
-* **Early Warning:** An alarm is activated well in advance if the trend analysis predicts the temperature will reach the critical limit of **70°C**.
+* **Early Warning:** An alarm is activated well in advance if the trend analysis predicts the temperature will reach the critical limit of **70°C**. You can set another one.
 * **Actuator Control:** An output is available to control an external actuator, such as an **additional cooling fan**. The fan's activation is also based on the temperature trend analysis.
 * **Analog Output:** An analog output signal (0-12V) is provided for diagnostic purposes, where **10V corresponds to 100°C**.
 * **Control Method:** The fan can be controlled via a hardware comparator or by software.
@@ -42,4 +42,4 @@ Although using a single, digital **DS18B20** sensor would simplify the circuit, 
 * **Debug Mode:** When connected, the module enters a debug mode (SSP BLE profile ), sending data to the Bluefruit Connect application to generate plots on canvas, from both sensors.
 * **Antenna:** The custom PCB version includes a modified antenna layout with a u.FL connector for an external antenna, providing better range than the factory one.
 * **Enclosure:** The housing is 3D printed using MJF technology with black nylon powder, resulting in a very solid and durable enclosure with 3mm thick walls, labyrinthine seals, and cable holders.
-* **Availability:** The PCB schematic and layout will be published soon. While others can print the model using different technologies, the precise fit and accuracy of the MJF process may not be achievable.
+* **Availability:** The PCB schematic BOM and layout you can find in PCB section . While others can print the model using different technologies, the precise fit and accuracy of the MJF process may not be achievable.
