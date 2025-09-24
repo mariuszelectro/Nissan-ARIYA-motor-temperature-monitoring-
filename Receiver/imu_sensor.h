@@ -4,6 +4,20 @@
 #include <Arduino.h>
 #include <LSM6DS3.h>
 
+
+//* Flters Params*//
+#define Q_angle_set 0.0005          //lower value = more stable bult higer latency 0.001
+#define Q_bias_set 0.003            //gyro dift
+#define R_measure_set 0.3           //How trust accel higer= trust more gyro 0.03
+
+#define R_measure_high_set 0.8      //0,5 more = moer trust gyro 0,03-1,2
+#define R_measure_low_set 0.09      //0,03 sesivity when no acceelration to  higer= more stable
+#define GYRO_THRESHOLD_set  0.8     //1.0 accereartion limit to usec for calculation  less= trust gyro 
+#define ACCEL_TOLERANCE_set 0.3      //0.2  huher = more smouth
+#define ACCEL_LPF_ALPHA_set 0.05      //lower value = more filtererd 0,2
+
+
+
 /**
  * @brief Struktura do przechowywania odczytów z IMU.
  */

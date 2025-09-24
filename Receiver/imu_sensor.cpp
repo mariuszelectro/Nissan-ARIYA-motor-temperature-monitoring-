@@ -27,15 +27,16 @@ static float kalman_angle = 0;
 static float kalman_bias = 0;
 static float kalman_P[2][2] = { { 0, 0 }, { 0, 0 } };
 
-static float Q_angle = 0.001;
-static float Q_bias = 0.003;
-static float R_measure = 0.03;
 
-static const float R_measure_high = 0.5;
-static const float R_measure_low = 0.03;
-static const float GYRO_THRESHOLD = 1.0;
-static const float ACCEL_TOLERANCE = 0.2; 
-static const float ACCEL_LPF_ALPHA = 0.2; 
+static float Q_angle =  Q_angle_set;
+static float Q_bias =Q_bias_set;
+static float R_measure = R_measure_set;
+
+static const float R_measure_high = R_measure_high_set;
+static const float R_measure_low = R_measure_low_set;
+static const float GYRO_THRESHOLD = GYRO_THRESHOLD_set;
+static const float ACCEL_TOLERANCE = ACCEL_TOLERANCE_set; 
+static const float ACCEL_LPF_ALPHA =  ACCEL_LPF_ALPHA_set; 
 
 static int probe = 0;
 
@@ -244,7 +245,7 @@ bool readIMUData(IMUData* data) {
   static float lastData = 0;
 
   // Twoja modyfikacja, która kontroluje częstotliwość aktualizacji danych na LCD.
-  if (++refreshTimer % 3 == 0) {
+  //if (++refreshTimer % 3 == 0) {
     int temp_probe = probe;
     probe = 0;
 
@@ -262,7 +263,7 @@ bool readIMUData(IMUData* data) {
     char temp[30];
     sprintf(temp, "Gyro probe %d\n", temp_probe);
     Serial.println(temp);
-  }
+  //}
   data->tilt = lastData; // Kopiowanie ostatniej, ustabilizowanej wartości.
   return true;
 }
