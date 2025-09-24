@@ -367,7 +367,7 @@ void LCD_PUT(const DisplayData* data) {
         angleTextColor = ST77XX_GREEN;
         // Kalibracja - tekst zielony
     } else {
-        if (data->MainAngle.RealAngle == -1) {
+        if (data->MainAngle.Valid == false) {
             snprintf(newAngleString, sizeof(newAngleString), "---");
         } else {
             snprintf(newAngleString, sizeof(newAngleString), "%2d", data->MainAngle.RealAngle);

@@ -103,6 +103,7 @@ enum DataInfo {
     Real,
     Simul
 };
+
 struct temperature {
     float temperature;      // Glowna temperatura (np. analogowa lub dominujaca)  
     enum DataInfo source;
@@ -116,6 +117,7 @@ struct angle
 {
 	int RealAngle;
 	enum DataInfo source;
+    bool Valid;
 };
 struct voltage
 {

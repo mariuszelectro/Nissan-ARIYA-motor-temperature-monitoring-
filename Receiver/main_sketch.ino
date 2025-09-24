@@ -21,7 +21,7 @@ bool Button = false;
 void setup() {
   // Ustawiamy zrodlo danych w setup() - dla IMU zawsze Real
 
-
+#if 1
   currentDisplayData.MainTemperature.source = Real;
   currentDisplayData.MainAngle.source = Real;
   currentDisplayData.MainRssi.source = Real;
@@ -31,6 +31,17 @@ void setup() {
   currentDisplayData.MainTempeSource.source = Real;
   currentDisplayData.Alarm.source = Real;
   currentDisplayData.Wentylator.source = Real;
+  #else
+  currentDisplayData.MainTemperature.source = Simul;
+  currentDisplayData.MainAngle.source = Simul;
+  currentDisplayData.MainRssi.source = Simul;
+  currentDisplayData.MainHeight.source = Simul;
+  currentDisplayData.MainVoltage.source = Simul;
+  currentDisplayData.MainCalibrate.Source = Simul;
+  currentDisplayData.MainTempeSource.source = Simul;
+  currentDisplayData.Alarm.source = Simul;
+  currentDisplayData.Wentylator.source = Simul;
+  #endif 
 
 
   // Inicjalizujemy na wypadek niepowodzenia odczytu z czujnika
@@ -119,9 +130,8 @@ void loop() {
     if (currentDisplayData.MainAngle.source == Real) {
       IMUData imuData;
       if (readIMUData(&imuData)) {
-        currentDisplayData.MainAngle.RealAngle = (int)roundf(abs(imuData.tilt) / 90.0 * 100.0);
-      } else {
-        currentDisplayData.MainAngle.RealAngle = -1;
+        currentDisplayData.MainAngle.RealAngle = (int)roundf(/*abs*/(imuData.tilt) / 90.0 * 100.0);
+        currentDisplayData.MainAngle.Valid=true;
       }
     }
     if (currentDisplayData.MainCalibrate.CalibrationConuter > 0) {

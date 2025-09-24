@@ -34,9 +34,13 @@ static float R_measure = 0.03;
 static const float R_measure_high = 0.5;
 static const float R_measure_low = 0.03;
 static const float GYRO_THRESHOLD = 1.0;
-static float smooth_accel_roll = 0.0;
+static const float ACCEL_TOLERANCE = 0.2; 
+static const float ACCEL_LPF_ALPHA = 0.2; 
 
 static int probe = 0;
+
+static float filtered_accel_x = 0;
+static float filtered_accel_z = 0;
 
 static void initHWFilter() {
   Serial.println("Konfiguracja filtrow sprzetowych IMU...");
@@ -123,9 +127,9 @@ bool LoadImuCalibration(void) {
     Serial.println(roll_offset);
     Serial.print("Offset Pitch: ");
     Serial.println(pitch_offset);
-    float initial_accel_y = myIMU.readFloatAccelY();
+    float initial_accel_x = myIMU.readFloatAccelX();
     float initial_accel_z = myIMU.readFloatAccelZ();
-    float initial_angle = atan2(initial_accel_y, initial_accel_z) * 180.0 / PI;
+    float initial_angle = atan2(initial_accel_x, initial_accel_z) * 180.0 / PI;
     Kalman_init(initial_angle);
     return true;
   } else {
@@ -160,8 +164,8 @@ void setCallIMUasZero(void) {
     float avg_accel_z = cal_accel_z_sum / cal_sample_count;
     float avg_accel_x = cal_accel_x_sum / cal_sample_count;
 
-    roll_offset = atan2(avg_accel_y, avg_accel_z) * 180.0 / PI;
-    pitch_offset = atan2(-avg_accel_x, sqrt(avg_accel_y * avg_accel_y + avg_accel_z * avg_accel_z)) * 180.0 / PI;
+    roll_offset = 0.0; 
+    pitch_offset = atan2(avg_accel_x, avg_accel_z) * 180.0 / PI;
 
     Serial.println("Nowa pozycja 'zero' ustawiona.");
   } else {
@@ -212,8 +216,8 @@ bool Call_IMU_Calibration(int write) {
     float avg_accel_z = cal_accel_z_sum / cal_sample_count;
     float avg_accel_x = cal_accel_x_sum / cal_sample_count;
 
-    roll_offset = atan2(avg_accel_y, avg_accel_z) * 180.0 / PI;
-    pitch_offset = atan2(-avg_accel_x, sqrt(avg_accel_y * avg_accel_y + avg_accel_z * avg_accel_z)) * 180.0 / PI;
+    roll_offset = 0.0;
+    pitch_offset = atan2(avg_accel_x, avg_accel_z) * 180.0 / PI;
     if (write) {
       saveCalibration(roll_offset, pitch_offset);
     }
@@ -236,56 +240,67 @@ bool readIMUData(IMUData* data) {
   if (!data) {
     return false;
   }
+  static int refreshTimer = 0;
+  static float lastData = 0;
 
-  int temp_probe = probe;
-  probe = 0;
+  // Twoja modyfikacja, która kontroluje częstotliwość aktualizacji danych na LCD.
+  if (++refreshTimer % 3 == 0) {
+    int temp_probe = probe;
+    probe = 0;
 
-  data->tilt = kalman_angle - pitch_offset;
-  // Ograniczenie wartości wzniesienia do 99%
-  if (data->tilt > 99.0) {
-    data->tilt = 99.0;
+    data->tilt = kalman_angle - pitch_offset;
+    if (data->tilt > 99.0) {
+      data->tilt = 99.0;
+    }
+    lastData = data->tilt;
+    data->kalmanAngle = kalman_angle;
+    data->samplesCollected = temp_probe;
+
+    Serial.print("Korekta Tilt (finalny wynik): ");
+    Serial.println(data->tilt);
+
+    char temp[30];
+    sprintf(temp, "Gyro probe %d\n", temp_probe);
+    Serial.println(temp);
   }
-  data->kalmanAngle = kalman_angle;
-  data->samplesCollected = temp_probe;
-
-  Serial.print("Korekta Tilt (finalny wynik): ");
-  Serial.println(data->tilt);
-
-  char temp[30];
-  sprintf(temp, "Gyro probe %d\n", temp_probe);
-  Serial.println(temp);
-
+  data->tilt = lastData; // Kopiowanie ostatniej, ustabilizowanej wartości.
   return true;
 }
 
 void CollectImu(void) {
-  static unsigned long last_read_time = 0;
-  const unsigned long read_interval = 20;
-  unsigned long current_time = millis();
+  const float dt = 0.02;
 
-  if (current_time - last_read_time >= read_interval) {
-    last_read_time = current_time;
-    float dt = (float)read_interval / 1000.0;
-    float accel_y = myIMU.readFloatAccelY();
-    float accel_z = myIMU.readFloatAccelZ();
-    float gyro_x = myIMU.readFloatGyroX();
+  // Odczyt surowych danych
+  float accel_x = myIMU.readFloatAccelX();
+  float accel_y = myIMU.readFloatAccelY();
+  float accel_z = myIMU.readFloatAccelZ();
+  float gyro_y = myIMU.readFloatGyroY(); 
 
-    if (isnan(accel_y) || isnan(accel_z) || isnan(gyro_x)) {
-      return;
-    }
-
-    if (abs(gyro_x) > GYRO_THRESHOLD) {
-      R_measure = R_measure_high;
-    } else {
-      R_measure = R_measure_low;
-    }
-
-    float accel_roll = atan2(-myIMU.readFloatAccelX(), sqrt(myIMU.readFloatAccelY() * myIMU.readFloatAccelY() + myIMU.readFloatAccelZ() * myIMU.readFloatAccelZ())) * 180.0 / PI;
-
-    smooth_accel_roll = 0.9 * smooth_accel_roll + 0.1 * accel_roll;
-
-    Kalman_update(smooth_accel_roll, gyro_x, dt);
-
-    probe++;
+  if (isnan(accel_x) || isnan(accel_z) || isnan(gyro_y)) {
+    return;
   }
+
+  // Filtr dolnoprzepustowy (LPF) na danych z akcelerometru
+  filtered_accel_x = ACCEL_LPF_ALPHA * accel_x + (1 - ACCEL_LPF_ALPHA) * filtered_accel_x;
+  filtered_accel_z = ACCEL_LPF_ALPHA * accel_z + (1 - ACCEL_LPF_ALPHA) * filtered_accel_z;
+
+  // Obliczanie kąta na podstawie odfiltrowanych danych
+  float accel_angle = atan2(filtered_accel_x, filtered_accel_z) * 180.0 / PI;
+  
+  // Obliczanie normy (długości wektora) prędkości obrotowej i przyspieszenia
+  float gyro_norm = sqrt(myIMU.readFloatGyroX() * myIMU.readFloatGyroX() +
+                         myIMU.readFloatGyroY() * myIMU.readFloatGyroY() +
+                         myIMU.readFloatGyroZ() * myIMU.readFloatGyroZ());
+  
+  float accel_norm = sqrt(accel_x * accel_x + accel_y * accel_y + accel_z * accel_z);
+
+  // Adaptacyjne dostosowanie R_measure
+  if (gyro_norm > GYRO_THRESHOLD || abs(accel_norm - 1.0) > ACCEL_TOLERANCE) {
+    R_measure = R_measure_high;
+  } else {
+    R_measure = R_measure_low;
+  }
+
+  Kalman_update(accel_angle, gyro_y, dt);
+  probe++;
 }
