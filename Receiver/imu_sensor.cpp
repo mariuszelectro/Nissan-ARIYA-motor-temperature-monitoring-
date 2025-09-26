@@ -269,7 +269,24 @@ bool readIMUData(IMUData* data) {
 }
 
 void CollectImu(void) {
-  const float dt = 0.02;
+  // ======================================================================
+  // 1. DYNAMICZNE OBLICZANIE dt (NAJWAŻNIEJSZA ZMIANA)
+  // ======================================================================
+  static unsigned long last_collect_time = 0;
+  unsigned long current_time = micros();
+  // Pominięcie pierwszego przebiegu pętli, aby zainicjować czas
+  // i uniknąć obliczania dt z zerową wartością początkową.
+  if (last_collect_time == 0) {
+    last_collect_time = current_time;
+    return;
+  }
+  
+  // Obliczenie dt w sekundach. Dzielimy przez 1,000,000.0f, aby
+  // uzyskać precyzyjny wynik zmiennoprzecinkowy (float).
+  float dt = (current_time - last_collect_time) / 1000000.0f;
+  last_collect_time = current_time; // Aktualizacja czasu dla następnego obiegu
+
+  // --- Reszta kodu jest taka sama, ale teraz będzie działać poprawnie ---
 
   // Odczyt surowych danych
   float accel_x = myIMU.readFloatAccelX();
@@ -277,6 +294,7 @@ void CollectImu(void) {
   float accel_z = myIMU.readFloatAccelZ();
   float gyro_y = myIMU.readFloatGyroY(); 
 
+  // Sprawdzenie, czy odczyty są poprawnymi liczbami
   if (isnan(accel_x) || isnan(accel_z) || isnan(gyro_y)) {
     return;
   }
@@ -285,23 +303,28 @@ void CollectImu(void) {
   filtered_accel_x = ACCEL_LPF_ALPHA * accel_x + (1 - ACCEL_LPF_ALPHA) * filtered_accel_x;
   filtered_accel_z = ACCEL_LPF_ALPHA * accel_z + (1 - ACCEL_LPF_ALPHA) * filtered_accel_z;
 
-  // Obliczanie kąta na podstawie odfiltrowanych danych
+  // Obliczanie kąta na podstawie odfiltrowanych danych z akcelerometru
   float accel_angle = atan2(filtered_accel_x, filtered_accel_z) * 180.0 / PI;
   
-  // Obliczanie normy (długości wektora) prędkości obrotowej i przyspieszenia
+  // Obliczanie normy (długości wektora) prędkości obrotowej
   float gyro_norm = sqrt(myIMU.readFloatGyroX() * myIMU.readFloatGyroX() +
                          myIMU.readFloatGyroY() * myIMU.readFloatGyroY() +
                          myIMU.readFloatGyroZ() * myIMU.readFloatGyroZ());
   
+  // Obliczanie normy (długości wektora) przyspieszenia
   float accel_norm = sqrt(accel_x * accel_x + accel_y * accel_y + accel_z * accel_z);
 
-  // Adaptacyjne dostosowanie R_measure
+  // Adaptacyjne dostosowanie R_measure na podstawie wykrytego ruchu.
+  // Teraz będzie poprawnie reagować dzięki zmianom w pliku .h
   if (gyro_norm > GYRO_THRESHOLD || abs(accel_norm - 1.0) > ACCEL_TOLERANCE) {
-    R_measure = R_measure_high;
+    R_measure = R_measure_high; // Zwiększone zaufanie do żyroskopu
   } else {
-    R_measure = R_measure_low;
+    R_measure = R_measure_low;  // Zwiększone zaufanie do akcelerometru
   }
 
+  // ======================================================================
+  // 2. WYWOŁANIE FILTRU KALMANA Z POPRAWNYM, DYNAMICZNYM dt
+  // ======================================================================
   Kalman_update(accel_angle, gyro_y, dt);
   probe++;
 }

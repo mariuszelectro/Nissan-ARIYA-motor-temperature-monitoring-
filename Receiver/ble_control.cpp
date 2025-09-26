@@ -12,7 +12,7 @@
 
 // Flaga, która zapobiega wielokrotnemu drukowaniu informacji o beaconie
 volatile bool foundBeaconFlag = false;
-DisplayData* globalDisplayData = nullptr;        //zadeklarowne na potrzyb dostępu dla innych funkcji z poza tego pliku 
+DisplayData* globalDisplayData = nullptr;  //zadeklarowne na potrzyb dostępu dla innych funkcji z poza tego pliku
 // Lokalna struktura do przechowywania danych z beacona
 struct BeaconData {
   float temp_analog;
@@ -25,13 +25,13 @@ struct BeaconData {
 };
 
 // Statyczna globalna zmienna do przechowywania ostatnich sparsowanych danych z beacona
-static BeaconData lastParsedBeaconData={.temp_analog=-1,.temp_digital=-1};
+static BeaconData lastParsedBeaconData = { .temp_analog = -1, .temp_digital = -1 };
 static unsigned long lastBeaconDataUpdateTime = 0;  // Znacznik czasu ostatniej aktualizacji beacona
 
 // Statyczne zmienne globalne do akumulowania temperatury do uśredniania
 static float accumulatedTempFromBeacons = 0.0;
 static int accumulatedCountFromBeacons = 0;
-static char source=' ';
+static char source = ' ';
 
 // === Nowe zmienne do sledzenia licznika zycia sensora ===
 static int lastKnownAliveCounter = -1;                // Ostatnia znana wartosc licznika (-1 oznacza nieznana/poczatkowa)
@@ -121,33 +121,33 @@ void parseAndPrintAdvData(const uint8_t* data, uint8_t len, int8_t rssi) {
         } else if (digitalValid) {
           selectedTemp = currentBeaconDataLocal.temp_digital;
         }*/
-        // === Logika wyboru temperatury i dodawania do akumulatora średniej ===        
+        // === Logika wyboru temperatury i dodawania do akumulatora średniej ===
 
-                if (analogValid && digitalValid) {
-                    if (currentBeaconDataLocal.temp_analog > currentBeaconDataLocal.temp_digital) {
-                        selectedTemp = currentBeaconDataLocal.temp_analog;
-                        source = 'A'; // Wybrano A, bo jest większa
-                    } else {
-                        selectedTemp = currentBeaconDataLocal.temp_digital;
-                        source = 'C'; // Wybrano C, bo jest większa lub równa
-                    }
-                } else if (analogValid) {
-                    selectedTemp = currentBeaconDataLocal.temp_analog;
-                    source = 'A'; // Wybrano A, bo tylko ona jest poprawna
-                } else if (digitalValid) {
-                    selectedTemp = currentBeaconDataLocal.temp_digital;
-                    source = 'C'; // Wybrano C, bo tylko ona jest poprawna
-                }
-                
-                if (selectedTemp != -1.0) { // Tylko jeśli wybrano prawidłową temperaturę
-                    // Zapisujemy wybraną literę do globalnej struktury
-                
+        if (analogValid && digitalValid) {
+          if (currentBeaconDataLocal.temp_analog > currentBeaconDataLocal.temp_digital) {
+            selectedTemp = currentBeaconDataLocal.temp_analog;
+            source = 'A';  // Wybrano A, bo jest większa
+          } else {
+            selectedTemp = currentBeaconDataLocal.temp_digital;
+            source = 'C';  // Wybrano C, bo jest większa lub równa
+          }
+        } else if (analogValid) {
+          selectedTemp = currentBeaconDataLocal.temp_analog;
+          source = 'A';  // Wybrano A, bo tylko ona jest poprawna
+        } else if (digitalValid) {
+          selectedTemp = currentBeaconDataLocal.temp_digital;
+          source = 'C';  // Wybrano C, bo tylko ona jest poprawna
+        }
 
-                    // Akumulacja do uśredniania
-                    accumulatedTempFromBeacons += selectedTemp;
-                    accumulatedCountFromBeacons++;
-                }
-  
+        if (selectedTemp != -1.0) {  // Tylko jeśli wybrano prawidłową temperaturę
+          // Zapisujemy wybraną literę do globalnej struktury
+
+
+          // Akumulacja do uśredniania
+          accumulatedTempFromBeacons += selectedTemp;
+          accumulatedCountFromBeacons++;
+        }
+
         if (selectedTemp != -1.0) {  // Tylko jeśli wybrano prawidłową temperaturę
           accumulatedTempFromBeacons += selectedTemp;
           accumulatedCountFromBeacons++;
@@ -169,11 +169,10 @@ void parseAndPrintAdvData(const uint8_t* data, uint8_t len, int8_t rssi) {
         // ===============================================
         //tone(BUZZER_PIN, 1000); // Odtwarzaj dzwiek o czestotliwosci 1 KHz na pinie BUZZER_PIN
         // Wyswietlanie danych z LOKALNEJ struktury na monitorze szeregowym
-        static int diagnose=0;
-        if(diagnose++%10==0)
-        {
-        Serial.printf("Temp Sensor RSSI %d\n", currentBeaconDataLocal.rssi_value);
-        /*Serial.print("RSSI: "); Serial.println(currentBeaconDataLocal.rssi_value);
+        static int diagnose = 0;
+        if (diagnose++ % 10 == 0) {
+          Serial.printf("Temp Sensor RSSI %d\n", currentBeaconDataLocal.rssi_value);
+          /*Serial.print("RSSI: "); Serial.println(currentBeaconDataLocal.rssi_value);
                 Serial.print("Temp Analog: "); Serial.print(currentBeaconDataLocal.temp_analog); Serial.println(" C");
                 Serial.print("Temp Cyfrowa: "); Serial.print(currentBeaconDataLocal.temp_digital); Serial.println(" C");
                 Serial.print("Alarm: "); Serial.println(currentBeaconDataLocal.alarm_status);
@@ -181,9 +180,9 @@ void parseAndPrintAdvData(const uint8_t* data, uint8_t len, int8_t rssi) {
                 Serial.print("Licznik: "); Serial.println(currentBeaconDataLocal.sensor_alive_counter);
                 Serial.println("=========================================");
                 */
-        // === Dodano: Sygnal dzwiekowy ===
-        //noTone(BUZZER_PIN);    // Wylacz dzwiek
-        // =============================
+          // === Dodano: Sygnal dzwiekowy ===
+          //noTone(BUZZER_PIN);    // Wylacz dzwiek
+          // =============================
         }
         // Zapisz sparsowane dane do statycznej globalnej zmiennej
         lastParsedBeaconData = currentBeaconDataLocal;
@@ -249,7 +248,7 @@ void ble_task(DisplayData* data) {
   if (data) {  // Upewnij sie, ze wskaznik nie jest NULL
     // === GLOWNA LOGIKA STATUSOW BEACONA ===
     if (globalDisplayData == nullptr) {
-        globalDisplayData = data;
+      globalDisplayData = data;
     }
     // 1. Warunek specjalnego alarmu '!' (bardzo dlugo zamrozony licznik zycia sensora)
     if (lastKnownAliveCounter != -1 && (currentTime - lastAliveCounterChangeTime) > (2 * BEACON_ALIVE_COUNTER_TIMEOUT_MS)) {
@@ -306,47 +305,47 @@ void ble_task(DisplayData* data) {
       accumulatedCountFromBeacons = 0;
 
       // Oblicz srednia RSSI z akumulatora i zresetuj
-      if (accumulatedRssiCount > 0) {
-        data->MainRssi.RealRssi = (int)roundf(accumulatedRssiFromBeacons / accumulatedRssiCount);
-      } else {
-        data->MainRssi.RealRssi = -1;  // Brak sygnalu RSSI w biezacym oknie
+      static int intLastRSSI = -1;
+      static int FQ_RSSI = 0;
+      if (++FQ_RSSI % 5 == 0) {
+        if (accumulatedRssiCount > 0) {
+          
+          intLastRSSI=(int)roundf(accumulatedRssiFromBeacons / accumulatedRssiCount);
+        } else {
+          //data->MainRssi.RealRssi = -1;  // Brak sygnalu RSSI w biezacym oknie
+          intLastRSSI=-1;
+        }
+        // Zawsze resetuj akumulator RSSI po odswiezeniu
+        accumulatedRssiFromBeacons = 0.0;
+        accumulatedRssiCount = 0;
       }
-      // Zawsze resetuj akumulator RSSI po odswiezeniu
-      accumulatedRssiFromBeacons = 0.0;
-      accumulatedRssiCount = 0;
-
+      data->MainRssi.RealRssi=intLastRSSI;
       // === Ustaw status wentylatora i alarmu na podstawie sparsowanych danych ===
       // Te statusy sa przekazywane jako char, BEZ MODYFIKACJI source
       data->Wentylator.state = lastParsedBeaconData.fan_status;
       data->Alarm.state = lastParsedBeaconData.alarm_status;
-      data->MainTempeSource.AnalogDigital=source;
+      data->MainTempeSource.AnalogDigital = source;
 
-       static int counterAnalog=0;
-        if(lastParsedBeaconData.temp_analog==-1)
-        {
-            if(counterAnalog++>20)
-            {
-              counterAnalog=100; 
-              data->MainTempeSource.AnalogStatus=-1; 
-            }
+      static int counterAnalog = 0;
+      if (lastParsedBeaconData.temp_analog == -1) {
+        if (counterAnalog++ > 20) {
+          counterAnalog = 100;
+          data->MainTempeSource.AnalogStatus = -1;
         }
-        else{
-            counterAnalog=0;
-            data->MainTempeSource.AnalogStatus=1; 
+      } else {
+        counterAnalog = 0;
+        data->MainTempeSource.AnalogStatus = 1;
+      }
+      static int counterDigital = 0;
+      if (lastParsedBeaconData.temp_digital == -1) {
+        if (counterDigital++ > 20) {
+          counterDigital = 100;
+          data->MainTempeSource.DigitalStatus = -1;
+        } else {
+          counterDigital = 0;
+          globalDisplayData->MainTempeSource.DigitalStatus = 1;
         }
-        static int counterDigital=0;
-        if(lastParsedBeaconData.temp_digital==-1)
-        {
-            if(counterDigital++>20)
-            {
-              counterDigital=100;
-              data->MainTempeSource.DigitalStatus=-1; 
-            }
-            else {
-              counterDigital=0;
-              globalDisplayData->MainTempeSource.DigitalStatus=1; 
-            }
-        }
+      }
 
 
       // =========================================================================
