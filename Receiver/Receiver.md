@@ -18,6 +18,7 @@
 * **Type:** 1.69-inch LCD display (based on the [Waveshare 1.69inch LCD Module](https://www.waveshare.com/wiki/1.69inch_LCD_Module))
 * **Interface:** Communicates via an SPI (Serial Peripheral Interface) bus.
 * **Function:** Used for visualizing data, such as sensor measurements, device status, or other project information.
+* **Power Consumpion:** 20mA@5V in dark mode, 50mA@5V in Bright mode
 
 ---
 
