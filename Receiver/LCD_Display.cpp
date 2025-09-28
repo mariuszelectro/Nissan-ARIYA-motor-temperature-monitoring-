@@ -120,6 +120,10 @@ void LCD_PUT(const DisplayData* data) {
             float clampedTemp = constrain(data->MainTemperature.temperature, 20.0f, 100.0f);
             tempBarHeight = (int)((clampedTemp - 20.0f) * (GRAPH_AREA_HEIGHT_PX / 80.0f));
             tempBarHeight = constrain(tempBarHeight, 0, GRAPH_AREA_HEIGHT_PX);
+            // KLUCZOWA KOREKTA: Gwarantuje minimalną wysokość 1px w zakresie skalowania
+            if (data->MainTemperature.temperature >= 20.0 && tempBarHeight == 0) {
+                 tempBarHeight = 1; 
+            }
         }
     } else {
         tempBarColor = ST77XX_BLACK;

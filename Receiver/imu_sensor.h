@@ -18,7 +18,7 @@
 */
 //* Filters Params - Optymalizacja pod maksymalną stabilność w samochodzie *//
 
-#define KalmmaPresets 2
+#define KalmmaPresets 4
 
 #if (KalmmaPresets==1)
 #define Q_angle_set 0.0005     // Szum procesu dla kąta. Mniejsza wartość = większa stabilność i mniejsza czułość na ruch.
@@ -63,6 +63,38 @@
 #define ACCEL_LPF_ALPHA_set 0.015 // Współczynnik filtra LPF. Bardzo niska wartość, aby ekstremalnie filtrować wibracje
 // z silnika i nierówności drogi, zanim dane trafią do filtru Kalmana. Wprowadzi to celowe opóźnienie.
 // Zakres: 0.01 - 0.5 (im niższa wartość, tym silniejsze filtrowanie i większy lag)
+#elif (KalmmaPresets==3)
+/* Filters Params - Ustawienia dla MAKSYMALNEJ STABILNOŚCI (Celowe Opóźnienie 2s) */
+
+#define Q_angle_set 0.0001     // Szum procesu dla kąta. Najniższa wartość - maksymalna sztywność modelu.
+#define Q_bias_set 0.003       // Szum procesu dla dryfu żyroskopu.
+#define R_measure_set 0.20     // Definiuje wartość bazową R_measure jako R_measure_low_set.
+
+#define R_measure_high_set 20.0    // KLUCZOWY: Bardzo wysoka wartość R_measure używana podczas ruchu.
+                                   // Powoduje, że filtr Kalmana praktycznie ignoruje zafałszowany akcelerometr,
+                                   // opierając się niemal wyłącznie na żyroskopie (stabilność kosztem lag'u).
+#define R_measure_low_set 0.20     // Niska wartość R_measure, gdy nie wykryto ruchu. Pozwala na powolną, 
+                                   // płynną korekcję dryfu.
+#define GYRO_THRESHOLD_set 1.5     // Próg wykrywania gwałtownych ruchów obrotowych (Roll/Yaw).
+#define ACCEL_TOLERANCE_set 0.05   // KLUCZOWY: Bardzo niska tolerancja (±0.05g). Natychmiast wykrywa przyspieszanie/hamowanie,
+                                   // przełączając na R_measure_high_set. Eliminuje błąd dynamiczny na osi X.
+#define ACCEL_LPF_ALPHA_set 0.01   // KLUCZOWY: Ekstremalnie niski współczynnik LPF. Wprowadza celowe 
+                                   // opóźnienie (lag) i maksymalnie filtruje wibracje jezdni/silnika.
+
+#elif (KalmmaPresets==4)
+/* Filters Params - Ustawienia dla EKSTREMALNEGO ODRZUCENIA AKCELEROMETRU (Minimalny Błąd Przyspieszenia) */
+
+#define Q_angle_set 0.0001     // Szum procesu dla kąta. Najniższa wartość - maksymalna sztywność modelu.
+#define Q_bias_set 0.003       // Szum procesu dla dryfu żyroskopu. Wartość standardowa.
+#define R_measure_set 0.20     // Wartość bazowa.
+
+#define R_measure_high_set 40.0    // KLUCZOWY: EKSTREMALNIE WYSOKA WARTOŚĆ! Powoduje, że filtr w trybie 'ruchu'
+                                   // jest praktycznie "ślepy" na akcelerometr (przyspieszenie/hamowanie/wstrząsy).
+#define R_measure_low_set 0.20     // Niska wartość R_measure, gdy nie wykryto ruchu. Pozwala na powolną korekcję dryfu.
+#define GYRO_THRESHOLD_set 1.0     // Obniżony próg wykrywania ruchu obrotowego.
+#define ACCEL_TOLERANCE_set 0.03   // KLUCZOWY: Bardzo niska tolerancja (±0.03g). Błyskawicznie wykrywa przyspieszanie/hamowanie
+                                   // i przełącza na R_measure_high_set. Odrzuca nawet najmniejsze przyspieszenie.
+#define ACCEL_LPF_ALPHA_set 0.01   // Ekstremalnie niski LPF. Maksymalne filtrowanie wibracji (celowe opóźnienie).
 #endif
 
 /**
