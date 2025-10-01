@@ -162,8 +162,11 @@ struct DisplayData {
     struct StatusSensor Wentylator; //// DODANO: 'W' dla wlaczonego wentylatora, 'n' dla wylaczonego
     struct StatusSensor Alarm;      //'A' dla alarmu, 'N' dla braku alarmu
   
-    float rollAngle;         // DODANO: Kat Roll z IMU
+    //float rollAngle;         // DODANO: Kat Roll z IMU
     float pitchAngle;        // DODANO: Kat Pitch z IMU
+    float x_acel;
+    float z_acel;
+    float y_acel;
     bool popUpWindow;        //wpisuje extra text na ekrane
     char textPopup[64];      //extra text
   

@@ -16,7 +16,7 @@ static int consecutiveLowReads = 0;
 // --- Zmienne do dynamicznej regulacji progow ---
 static float currentBaselineVoltage = 0.0;
 const float MIN_HIGH_VOLTAGE = 0.3; // Minimalny poziom wysoki 0.3V
-const float LOW_THRESHOLD_MULTIPLIER = 0.2; 
+const float LOW_THRESHOLD_MULTIPLIER = 0.4; 
 const int CONFIRMATION_READS_COUNT = 3; // Ilosc kolejnych odczytow dla potwierdzenia
 
 // --- Zmienne do usredniania biasu ---

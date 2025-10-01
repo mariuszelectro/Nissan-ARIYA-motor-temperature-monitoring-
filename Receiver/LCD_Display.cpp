@@ -85,6 +85,99 @@ void LCD_init() {
     tft.setTextSize(2);
     tft.setTextColor(ST77XX_WHITE);
 }
+// ======================================================================
+// OSTATECZNA POPRAWIONA FUNKCJA PrintAcel (Stabilność Względem Ostatniego Odczytu)
+// ======================================================================
+int PrintAcel(const DisplayData* data)
+{
+    static char accelString[40];
+    static char lastAccelString[40] = "";
+    // KLUCZOWA ZMIANA: Przechowuje ostatni odczyt Acel Z do porównania stabilności
+    static float last_z_acel_read = 0.0f;
+    
+    // Wymiary i pozycje
+    const int Y_POS_ACCEL = TEST_WINDOWS_Y_START_ON_SCREEN + TEST_WINDOWS_AREA_HEIGHT_PX - 16; 
+    const int X_POS_ACCEL = TEMP_WINDOW_WIDTH_PX + 2; 
+    const int ACCEL_AREA_WIDTH = HEIGHT_WINDOW_WIDTH_PX + ANGLE_WINDOW_WIDTH_PX;
+    const int ACCEL_AREA_HEIGHT = 18;
+    const int RECT_WIDTH = 30;
+    const int RECT_HEIGHT = 4;
+    const int RECT_X = X_POS_ACCEL + (ACCEL_AREA_WIDTH - RECT_WIDTH) / 2;
+    const int RECT_Y = Y_POS_ACCEL + (ACCEL_AREA_HEIGHT - RECT_HEIGHT) / 2 - 1; 
+    
+    // PRÓG STABILNOŚCI: Zmiana poniżej 0.1g (różnica między klatkami) oznacza, że czujnik "stoi".
+    const float STABILITY_THRESHOLD = 0.03f;  //tak samo jak w filtrze kalmama 
+
+    bool force_redraw = false;
+
+    // --- 1. SPRAWDZENIE STANU ZEROWEGO (INICJALIZACJA) ---
+    if(data->x_acel == 0.0f && data->y_acel == 0.0f && data->z_acel == 0.0f)
+    {
+        last_z_acel_read = 0.0f; // Resetujemy bazę odczytów
+
+        if (lastAccelString[0] != '\0') {
+             tft.fillRect(TEMP_WINDOW_WIDTH_PX, Y_POS_ACCEL - 2, ACCEL_AREA_WIDTH, ACCEL_AREA_HEIGHT, ST77XX_BLACK);
+             lastAccelString[0] = '\0'; 
+        }
+        return 0;
+    }
+
+    // --- 2. OKREŚLENIE STANU: STABILNY CZY DYNAMICZNY? ---
+    // Stan jest stabilny, jeśli różnica między aktualnym a poprzednim odczytem jest mała.
+    bool is_stable = (abs(data->z_acel - last_z_acel_read) < STABILITY_THRESHOLD);
+    
+    // Wymuszenie pierwszego wyświetlenia jako tekst (przy pierwszej klatce last_z_acel_read jest 0.0f)
+    if (last_z_acel_read == 0.0f) {
+        is_stable = false; 
+    }
+
+    // --- 3. LOGIKA RYSOWANIA ---
+
+    if (is_stable)
+    {
+        // Stan PROSTOKĄT
+        if (strcmp(lastAccelString, "RECT") != 0) {
+            strncpy(lastAccelString, "RECT", sizeof(lastAccelString));
+            force_redraw = true;
+        }
+
+        if (force_redraw) {
+            // Rysowanie prostokąta
+            tft.fillRect(TEMP_WINDOW_WIDTH_PX, Y_POS_ACCEL - 2, ACCEL_AREA_WIDTH, ACCEL_AREA_HEIGHT, ST77XX_BLACK);
+            tft.fillRect(RECT_X, RECT_Y, RECT_WIDTH, RECT_HEIGHT, ST77XX_GREEN);
+        }
+    }
+    else // Przyspieszenie jest znaczące (ruch): wyświetlamy CAŁĄ WARTOŚĆ.
+    {
+        // Stan TEKST: Wyświetlamy CAŁĄ WARTOŚĆ Z.
+        snprintf(accelString, sizeof(accelString), "%.2f %.2f",data->x_acel,data->z_acel);
+
+        // Musimy przerysować, jeśli tekst się zmienił LUB jeśli przechodzimy ze stanu PROSTOKĄT
+        if (strcmp(accelString, lastAccelString) != 0 || strcmp(lastAccelString, "RECT") == 0) {
+            strncpy(lastAccelString, accelString, sizeof(lastAccelString) - 1);
+            lastAccelString[sizeof(lastAccelString) - 1] = '\0';
+            force_redraw = true;
+        }
+
+        if (force_redraw) {
+            // Rysowanie tekstu
+            tft.fillRect(TEMP_WINDOW_WIDTH_PX, Y_POS_ACCEL - 2, ACCEL_AREA_WIDTH, ACCEL_AREA_HEIGHT, ST77XX_BLACK);
+            
+            tft.setFont(NULL);
+            tft.setTextSize(2);
+            tft.setTextColor(ST77XX_GREEN);
+            
+            tft.setCursor(X_POS_ACCEL, Y_POS_ACCEL);
+            tft.print(accelString);
+        }
+    }
+    
+    // AKTUALIZACJA: Zawsze aktualizujemy poprzedni odczyt, aby monitorować zmianę w kolejnym cyklu.
+    last_z_acel_read = data->z_acel;
+    
+    return 0;
+}
+// ======================================================================
 
 // --- Funkcja aktualizacji LCD ---
 void LCD_PUT(const DisplayData* data) {
@@ -605,6 +698,7 @@ void LCD_PUT(const DisplayData* data) {
     }
 
     unsigned long end_time = micros();
+    PrintAcel(data);
 
     // === ZMODYFIKOWANY KOD ===
     Serial.printf("LCD time %lu/%lu/%lu us)\n", mid_time - start_time, end_time - mid_time, end_time - start_time);

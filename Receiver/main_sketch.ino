@@ -131,6 +131,9 @@ void loop() {
       IMUData imuData;
       if (readIMUData(&imuData)) {
         currentDisplayData.MainAngle.RealAngle = (int)roundf(/*abs*/(imuData.tilt) / 90.0 * 100.0);
+        currentDisplayData.x_acel=imuData.X;
+        currentDisplayData.y_acel=imuData.Y;
+        currentDisplayData.z_acel=imuData.Z;
         currentDisplayData.MainAngle.Valid=true;
       }
     }

@@ -18,7 +18,7 @@
 */
 //* Filters Params - Optymalizacja pod maksymalną stabilność w samochodzie *//
 
-#define KalmmaPresets 4
+#define KalmmaPresets 7
 
 #if (KalmmaPresets==1)
 #define Q_angle_set 0.0005     // Szum procesu dla kąta. Mniejsza wartość = większa stabilność i mniejsza czułość na ruch.
@@ -95,6 +95,61 @@
 #define ACCEL_TOLERANCE_set 0.03   // KLUCZOWY: Bardzo niska tolerancja (±0.03g). Błyskawicznie wykrywa przyspieszanie/hamowanie
                                    // i przełącza na R_measure_high_set. Odrzuca nawet najmniejsze przyspieszenie.
 #define ACCEL_LPF_ALPHA_set 0.01   // Ekstremalnie niski LPF. Maksymalne filtrowanie wibracji (celowe opóźnienie).
+#elif (KalmmaPresets==5)
+/* Filters Params - Ustawienia dla EKSTREMALNEGO ODRZUCENIA AKCELEROMETRU (Minimalny Błąd Przyspieszenia) */
+
+#define Q_angle_set 0.0001     // Szum procesu dla kąta. Najniższa wartość - maksymalna sztywność modelu.
+#define Q_bias_set 0.003       // Szum procesu dla dryfu żyroskopu. Wartość standardowa.
+#define R_measure_set 0.20     // Wartość bazowa.
+
+#define R_measure_high_set 20.0    // KLUCZOWY: EKSTREMALNIE WYSOKA WARTOŚĆ! Powoduje, że filtr w trybie 'ruchu'
+                                   // jest praktycznie "ślepy" na akcelerometr (przyspieszenie/hamowanie/wstrząsy).
+#define R_measure_low_set 0.20     // Niska wartość R_measure, gdy nie wykryto ruchu. Pozwala na powolną korekcję dryfu.
+#define GYRO_THRESHOLD_set 1.0     // Obniżony próg wykrywania ruchu obrotowego.
+#define ACCEL_TOLERANCE_set 0.03   // KLUCZOWY: Bardzo niska tolerancja (±0.03g). Błyskawicznie wykrywa przyspieszanie/hamowanie
+                                   // i przełącza na R_measure_high_set. Odrzuca nawet najmniejsze przyspieszenie.
+#define ACCEL_LPF_ALPHA_set 0.01   // Ekstremalnie niski LPF. Maksymalne filtrowanie wibracji (celowe opóźnienie).
+#elif (KalmmaPresets==6)
+/* Filters Params - Ustawienia dla BALANSU MIĘDZY ELIMINACJĄ BŁĘDU DYNAMICZNEGO A OPÓŹNIENIEM */
+
+#define Q_angle_set 0.0010     // KLUCZOWY: ZWIĘKSZONY (z 0.0001) - Zmniejsza sztywność modelu.
+                                   // Pozwala filtrowi szybciej zaakceptować nowy, faktyczny kąt.
+#define Q_bias_set 0.003       // Standard.
+#define R_measure_set 0.20     // Wartość bazowa.
+
+#define R_measure_high_set 20.0    // KLUCZOWY: ZMNIEJSZONY (z 40.0) - Nieco większe zaufanie do Accel
+                                   // w trybie ruchu, aby uniknąć skrajnego opóźnienia.
+#define R_measure_low_set 0.20     // Niska wartość, gdy stoisz (dla szybkiej korekcji dryfu).
+#define GYRO_THRESHOLD_set 1.0     // Niski próg dla szybkiego przełączania.
+#define ACCEL_TOLERANCE_set 0.03   // Bardzo niska tolerancja. Błyskawicznie wykrywa ruch.
+#define ACCEL_LPF_ALPHA_set 0.01   // Ekstremalnie niski LPF.
+#elif (KalmmaPresets==7)
+// -----------------------------------------------------------------
+// PARAMETRY OGÓLNE I LPF (KLUCZOWE DLA REDUKCJI OPÓŹNIENIA)
+// -----------------------------------------------------------------
+#define ACCEL_LPF_ALPHA_set     0.2f    // KLUCZOWY: ZNACZĄCO ZWIĘKSZONY, aby zredukować opóźnienie LPF przy 165 Hz.
+#define ACCEL_TOLERANCE_set     0.05f   // Próg, który wymusza tryb HIGH podczas ruchu liniowego (Norma: 0.95g-1.05g).
+#define GYRO_THRESHOLD_set      1.0f    // Standardowy próg obrotu.
+
+// -----------------------------------------------------------------
+// STALE Q (Szum Procesu)
+// -----------------------------------------------------------------
+#define Q_angle_set             0.005f  // Zwiększony dla minimalizacji opóźnienia filtru Kalmana (Lag).
+#define Q_bias_set              0.003f  // Domyślna wartość.
+// -----------------------------------------------------------------
+// TRYB SPOCZYNKU (STABILNY - AFK LOW)
+// -----------------------------------------------------------------
+#define R_measure_low_set       0.05f   // NISKIE R (Wysokie zaufanie do Accel) - Szybka korekcja w spoczynku.
+#define Q_bias_low_set          0.0003f // NISKI Q_bias - Powolna, stabilna nauka dryfu.
+// -----------------------------------------------------------------
+// TRYB RUCHU (DYNAMICZNY - AFK HIGH)
+// -----------------------------------------------------------------
+#define R_measure_high_set      10.0f   // WYSOKIE R (Bardzo Niskie zaufanie do Accel) - Chroni przed błędem przyspieszeń.
+#define Q_bias_high_set         0.05f   // WYSOKI Q_bias - Szybkie zapominanie estymacji dryfu podczas dynamicznego ruchu.
+// -----------------------------------------------------------------
+// DEFAULTY
+// -----------------------------------------------------------------
+#define R_measure_set           R_measure_low_set // Domyślna wartość startowa R_measure
 #endif
 
 /**
@@ -105,6 +160,9 @@ struct IMUData {
     float angle;       // Kąt wzdłuż osi X (na boki)
     float kalmanAngle; // Estymowany kąt z filtru Kalmana
     int samplesCollected; // Liczba zebranych próbek od ostatniego odczytu
+    float X;
+    float Y;
+    float Z;
 };
 
 /**
