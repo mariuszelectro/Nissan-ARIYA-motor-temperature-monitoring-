@@ -18,7 +18,7 @@
 */
 //* Filters Params - Optymalizacja pod maksymalną stabilność w samochodzie *//
 
-#define KalmmaPresets 7
+#define KalmmaPresets 8
 
 #if (KalmmaPresets==1)
 #define Q_angle_set 0.0005     // Szum procesu dla kąta. Mniejsza wartość = większa stabilność i mniejsza czułość na ruch.
@@ -150,6 +150,35 @@
 // DEFAULTY
 // -----------------------------------------------------------------
 #define R_measure_set           R_measure_low_set // Domyślna wartość startowa R_measure
+
+#elif (KalmmaPresets==8)
+
+// -----------------------------------------------------------------
+// PARAMETRY OGÓLNE I LPF
+// -----------------------------------------------------------------
+#define ACCEL_LPF_ALPHA_set     0.2f    // Szybka reakcja LPF.
+#define ACCEL_TOLERANCE_set     0.05f   // Standardowy próg Normy.
+#define GYRO_THRESHOLD_set      1.0f    // Standardowy próg obrotu.
+#define ACCEL_Z_THRESHOLD_set   0.15f   // NOWY KLUCZOWY PRÓG: Wymusza Tryb HIGH, gdy A_z > 0.15g.
+// -----------------------------------------------------------------
+// STALE Q (Szum Procesu)
+// -----------------------------------------------------------------
+#define Q_angle_set             0.01f   // MAKSYMALNIE ZWIĘKSZONY: Nadaje największą wagę predykcji żyroskopu.
+#define Q_bias_set              0.003f  // Domyślna wartość.
+// -----------------------------------------------------------------
+// TRYB SPOCZYNKU (STABILNY - AFK LOW)
+// -----------------------------------------------------------------
+#define R_measure_low_set       0.5f    // BARDZO WYSOKIE R: Nawet w spoczynku niskie zaufanie do Accel.
+#define Q_bias_low_set          0.0003f // Niski Q_bias.
+// -----------------------------------------------------------------
+// TRYB RUCHU (DYNAMICZNY - AFK HIGH)
+// -----------------------------------------------------------------
+#define R_measure_high_set      25.0f   // EKSTREMALNIE WYSOKIE R: CAŁKOWITE IGMOROWANIE Accel.
+#define Q_bias_high_set         0.07f   // Agresywny reset dryfu.
+// -----------------------------------------------------------------
+// DEFAULTY
+// -----------------------------------------------------------------
+#define R_measure_set           R_measure_low_set
 #endif
 
 /**

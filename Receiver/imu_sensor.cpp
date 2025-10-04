@@ -31,10 +31,11 @@ static float kalman_P[2][2] = { { 0, 0 }, { 0, 0 } };
 static float R_measure = R_measure_set;
 
 // Stale Q i R zdefiniowane w naglowku dla aktualnego Presetu
-#if (KalmmaPresets==7)
+#if (KalmmaPresets>=7)
 static const float Q_angle_base = Q_angle_set;
 static const float Q_bias_low = Q_bias_low_set;
 static const float Q_bias_high = Q_bias_high_set;
+static const float ACCEL_Z_THRESHOLD = ACCEL_Z_THRESHOLD_set;
 #else
 static const float Q_angle_base = Q_angle_set;
 static const float Q_bias_low = Q_bias_set; 
@@ -311,9 +312,8 @@ void CollectImu(void) {
     // Odczyt surowych danych
     float accel_x = myIMU.readFloatAccelX();
     float accel_y = myIMU.readFloatAccelY(); // Os Roll
-    float accel_z = myIMU.readFloatAccelZ();
+    float accel_z = myIMU.readFloatAccelZ(); // Os Pitch (Przyspieszenie/Hamowanie)
     float gyro_y = myIMU.readFloatGyroY();   // Os obrotu dla Pitch
-
     X+=accel_x;
     Y+=accel_y;
     Z+=accel_z;
@@ -331,7 +331,7 @@ void CollectImu(void) {
     filtered_accel_z = ACCEL_LPF_ALPHA * accel_z + (1.0f - ACCEL_LPF_ALPHA) * filtered_accel_z;
 
     // Obliczanie kata na podstawie odfiltrowanych danych (konfiguracja X/Z jest prawidlowa dla Twojej plytki)
-    float accel_angle = atan2(filtered_accel_x, filtered_accel_z) * 180.0 / PI;
+    float accel_angle = atan2(filtered_accel_z, filtered_accel_x) * 180.0 / PI;
     
     // ======================================================================
     // 3. LOGIKA ADAPTACYJNA (eliminacja bledu przyspieszania/hamowania i stabilizacja biasu)
@@ -349,15 +349,17 @@ void CollectImu(void) {
     float current_Q_bias;
     float current_Q_angle = Q_angle_base; // Q_angle jest stale
 
-    // Sprawdzenie, czy wykryto ruch obrotowy (zyroskop) LUB przyspieszenie liniowe (akcelerometr)
-    if (gyro_norm > GYRO_THRESHOLD || abs(accel_norm - 1.0f) > ACCEL_TOLERANCE) {
+    // NOWY WARUNEK: Sprawdzenie, czy wykryto ruch obrotowy, przyspieszenie liniowe (Norma) 
+    // LUB WYKRYTO ZNACZĄCE PRZYSPIESZENIE/HAMOWANIE W OSI Z (która u Ciebie odpowiada za ruch).
+    if (gyro_norm > GYRO_THRESHOLD || abs(accel_norm - 1.0f) > ACCEL_TOLERANCE || abs(accel_z) > ACCEL_Z_THRESHOLD) {
         // TRYB RUCHU (Niski poziom zaufania do Accel, Wysoki szum biasu)
-        R_measure = R_measure_high;  // Niskie zaufanie do Accel (szybka zmiana kata!)
-        current_Q_bias = Q_bias_high; // Wysoki szum biasu (szybko zapominamy o estymacji biasu, by zapobiec dryfowi)
+        // Wymuszone ignorowanie Accel, gdy auto przyspiesza.
+        R_measure = R_measure_high;  
+        current_Q_bias = Q_bias_high; 
     } else {
         // TRYB SPOCZYNKU (Wysoki poziom zaufania do Accel, Niski szum biasu)
-        R_measure = R_measure_low;    // Wysokie zaufanie do Accel (szybka korekcja)
-        current_Q_bias = Q_bias_low;  // Niski szum biasu (powolna, stabilna nauka biasu)
+        R_measure = R_measure_low;    
+        current_Q_bias = Q_bias_low;  
     }
 
     // Aktualizacja filtru Kalmana z dynamicznym R_measure, Q_angle i Q_bias.

@@ -2,6 +2,7 @@
 #include <cstdio> // Dla snprintf
 #include <cstring> // Dla funkcji memmove
 #include <cmath>   // Dla roundf
+#include "FreeSansBold36pt7b.h"   //converteted by https://rop.nl/truetype2gfx//
 
 // --- Obiekty TFT i bufory - Definicje ---
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
@@ -354,6 +355,9 @@ void LCD_PUT(const DisplayData* data) {
         
         // Wyświetlanie temperatury
         tempWindowBufferGFX.setFont(&FreeSansBold24pt7b);
+        //New experimental Fonts
+        tempWindowBufferGFX.setFont(&FreeSansBold36pt7b);
+        ///
         tempWindowBufferGFX.setTextSize(1);
 
         int16_t x1_int, y1_int, x1_dec, y1_dec, x1_unit, y1_unit;
@@ -361,7 +365,7 @@ void LCD_PUT(const DisplayData* data) {
 
         tempWindowBufferGFX.getTextBounds(newTempIntPart, 0, 0, &x1_int, &y1_int, &w_int, &h_int);
         int baseline_y_main = (TEMP_WINDOW_HEIGHT_PX - h_int) / 2 - y1_int + 10;
-        int temp_x_pos_main = 25;
+        int temp_x_pos_main = 25-10-8;
 
         tempWindowBufferGFX.setCursor(temp_x_pos_main, baseline_y_main);
         tempWindowBufferGFX.print(newTempIntPart);
