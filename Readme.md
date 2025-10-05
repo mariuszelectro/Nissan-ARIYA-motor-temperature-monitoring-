@@ -23,5 +23,15 @@ The Nissan Ariya has a serious software flaw that can lead to dangerous situatio
 * **Custom Housing:** All enclosures were designed using 3D modeling and are printed with MJF technology using Nylon for durability.
 * **Cost-Effective:** Most of the necessary components can be purchased online at low prices.
 * **AI-Powered Code:** A significant portion of the code was developed with the assistance of Gemini AI, but tested and coreted with me.
-* **My contact:** mariuszelectro@gmail.com
+
+
+### Category	Technologies/Skills Demonstrated
+* **Electronics Design:** Design of devices containing Analog Circuits and Digital Circuits using Microcontrollers.
+* **PCB Design:** Professional PCB Design using Altium Designer (Printed Circuit Board layout).
+* **Software & Programming:** Programming in C/C++ (real-time logic, BLE communication, and data analysis).
+* **Electro-Mechanical:** Design	Electro-Mechanical Design and physical integration of electronics into custom enclosures.
+* **3D Modeling & Enclosures:** 3D Modeling of custom enclosures using FreeCAD, with subsequent manufacturing via MJF 3D Printing.
+* **Communication& Data:** Bluetooth Low Energy (BLE) implementation and custom algorithm development for Temperature Trend Analysis.
+
+* * **My contact:** mariuszelectro@gmail.com
 
