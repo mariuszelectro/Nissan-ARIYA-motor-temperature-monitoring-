@@ -331,7 +331,7 @@ void CollectImu(void) {
     filtered_accel_z = ACCEL_LPF_ALPHA * accel_z + (1.0f - ACCEL_LPF_ALPHA) * filtered_accel_z;
 
     // Obliczanie kata na podstawie odfiltrowanych danych (konfiguracja X/Z jest prawidlowa dla Twojej plytki)
-    float accel_angle = atan2(filtered_accel_z, filtered_accel_x) * 180.0 / PI;
+    float accel_angle = atan2(filtered_accel_x, filtered_accel_z) * 180.0 / PI;
     
     // ======================================================================
     // 3. LOGIKA ADAPTACYJNA (eliminacja bledu przyspieszania/hamowania i stabilizacja biasu)
