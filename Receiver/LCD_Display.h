@@ -9,7 +9,8 @@
 // Wlaczamy Free Fonts
 #include <Fonts/FreeSansBold24pt7b.h>
 #include <Fonts/FreeSansBold18pt7b.h>
-#include <Fonts/FreeSansBold12pt7b.h> // Poprawiony naglowek
+//#include <Fonts/FreeSansBold12pt7b.h> // Poprawiony naglowek
+#include"FreeSansBold12pt7bMS.h"
 
 // --- Definicje Pinow dla XIAO nRF52840 ---
 #define TFT_CS      3   // Chip select pin (CS)

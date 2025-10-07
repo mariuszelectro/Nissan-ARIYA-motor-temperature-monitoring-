@@ -159,7 +159,7 @@
 #define ACCEL_LPF_ALPHA_set     0.2f    // Szybka reakcja LPF.
 #define ACCEL_TOLERANCE_set     0.05f   // Standardowy próg Normy.
 #define GYRO_THRESHOLD_set      1.0f    // Standardowy próg obrotu.
-#define ACCEL_Z_THRESHOLD_set   0.15f   // NOWY KLUCZOWY PRÓG: Wymusza Tryb HIGH, gdy A_z > 0.15g.
+#define ACCEL_Z_THRESHOLD_set   0.03f   // NOWY KLUCZOWY PRÓG: Wymusza Tryb HIGH, gdy A_z > 0.10g.
 // -----------------------------------------------------------------
 // STALE Q (Szum Procesu)
 // -----------------------------------------------------------------

@@ -190,6 +190,7 @@ void loop() {
             tone(BUZZER_PIN, 1000, 10);       //synalizacja że jest jakiś komunikat
         }
     }
+    //currentDisplayData.MainTemperature.temperature=918;
     // Aktualizacja wyświetlacza
     LCD_PUT(&currentDisplayData);
     currentDisplayData.popUpWindow=false;
