@@ -192,5 +192,11 @@ void LCD_init();
 void LCD_PUT(const DisplayData* data);
 void setBacklightPWM(uint8_t pwmValue);
 void measureBrightness();
+bool getGyroState(float* gyro);
+
+// --- NOWA TYMCZASOWA DYREKTYWA ---
+// Jesli odkomentowane, przyspieszenie X i Z jest ZAWSZE drukowane z dokladnoscia do 3 miejsc.
+// Ignoruje to logike rysowania prostokata/progu stabilnosci.
+//#define ALWAYS_PRINT_ACCEL_3_DEC 
 
 #endif // LCD_DISPLAY_H

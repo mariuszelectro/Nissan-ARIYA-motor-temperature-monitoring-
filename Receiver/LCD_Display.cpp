@@ -176,6 +176,71 @@ int PrintAcel(const DisplayData* data) {
 
   return 0;
 }
+// void PrintGyroState(void) {
+//   const int ACCEL_AREA_HEIGHT = 18;
+//   const int X_POS_ACCEL = TEMP_WINDOW_WIDTH_PX + 2;
+//   const int Y_POS_ACCEL = TEST_WINDOWS_Y_START_ON_SCREEN + TEST_WINDOWS_AREA_HEIGHT_PX - 16;
+//   const int RECT_WIDTH = 30;
+//   const int RECT_HEIGHT = 4;
+//   const int ACCEL_AREA_WIDTH = HEIGHT_WINDOW_WIDTH_PX + ANGLE_WINDOW_WIDTH_PX;
+//   const int RECT_X = X_POS_ACCEL + (ACCEL_AREA_WIDTH - RECT_WIDTH) / 2;
+//   const int RECT_Y = Y_POS_ACCEL + (ACCEL_AREA_HEIGHT - RECT_HEIGHT) / 2 - 1;
+
+
+//   float gyro;
+//   if (getGyroState(&gyro))  // TRYB DYNAMIKA () - zmazujemy zielony prostokąt
+//   {
+//     //tft.fillRect(TEMP_WINDOW_WIDTH_PX, Y_POS_ACCEL - 2, ACCEL_AREA_WIDTH, ACCEL_AREA_HEIGHT, ST77XX_BLACK);
+//     tft.fillRect(RECT_X, RECT_Y, RECT_WIDTH, RECT_HEIGHT, ST77XX_BLACK);
+//   } else {  //rysuję zileony prostkat samochód stoi
+
+//     //tft.fillRect(TEMP_WINDOW_WIDTH_PX, Y_POS_ACCEL - 2, ACCEL_AREA_WIDTH, ACCEL_AREA_HEIGHT, ST77XX_BLACK);
+//     tft.fillRect(RECT_X, RECT_Y, RECT_WIDTH, RECT_HEIGHT, ST77XX_RED);
+//   }
+// }
+int PrintGyroState() {
+  float gyroBias;
+  static bool memMode = true;
+  // Pobieramy status trybu (true = Ruch/DYNAMIKA)
+  bool isDynamic = getGyroState(&gyroBias);
+
+  if (isDynamic == memMode) {
+    return 0;  //nic nie rysujemy
+  }
+  // ------------------------------------------------------------------
+  // PARAMETRY BELKI: LOKALNE dla bufora angleWindowBufferGFX
+  // ------------------------------------------------------------------
+  const int PADDING = 10;  // Mały margines od krawędzi
+  const int WIDTH = 28;    // Szerokość belki
+  const int HEIGHT = 5;    // Wysokość belki
+
+  // Obliczenie LOKALNEJ pozycji X i Y dla prawego dolnego rogu bufora
+  const int X_POS_LOCAL = ANGLE_WINDOW_WIDTH_PX - WIDTH - PADDING - 25;
+  const int Y_POS_LOCAL = ANGLE_WINDOW_HEIGHT_PX - HEIGHT - PADDING;
+
+  // 1. RYSOWANIE BELKI DO BUFORA ANGLE
+  if (isDynamic) {
+    // TRYB DYNAMIKA: Czerwony (używamy gotowego koloru)
+    angleWindowBufferGFX.fillRect(X_POS_LOCAL, Y_POS_LOCAL, WIDTH, HEIGHT, ST77XX_RED);
+  } else {
+    // TRYB KOREKCJA: Zielony (używamy gotowego koloru)
+    angleWindowBufferGFX.fillRect(X_POS_LOCAL, Y_POS_LOCAL, WIDTH, HEIGHT, ST77XX_GREEN);
+  }
+  memMode = isDynamic;
+
+  // 2. NATYCHMIASTOWE WYŚWIETLENIE CAŁEGO OKNA KĄTA
+  // Obliczamy pozycję X okna kąta na ekranie
+  const int ANGLE_WINDOW_X_START_ON_SCREEN = TEMP_WINDOW_WIDTH_PX + HEIGHT_WINDOW_WIDTH_PX;
+
+  tft.drawRGBBitmap(ANGLE_WINDOW_X_START_ON_SCREEN,
+                    TEST_WINDOWS_Y_START_ON_SCREEN,
+                    angleWindowBufferGFX.getBuffer(),
+                    ANGLE_WINDOW_WIDTH_PX,
+                    ANGLE_WINDOW_HEIGHT_PX);
+  return 1;
+}
+
+
 // --- Funkcja aktualizacji LCD ---
 void LCD_PUT(const DisplayData* data) {
   unsigned long start_time = micros();
@@ -374,7 +439,7 @@ void LCD_PUT(const DisplayData* data) {
     tempWindowBufferGFX.print(newTempDecPart);
 
     //const char* unit_label_oc = "\x19C";
-    const char unit_label_oc[] = {/*(char)0x1A,*/ (char)0x19, 'C', 0 }; 
+    const char unit_label_oc[] = { /*(char)0x1A,*/ (char)0x19, 'C', 0 };
     tempWindowBufferGFX.setFont(&FreeSansBold12pt7bMS);
     tempWindowBufferGFX.setTextColor(ST77XX_LIGHTGREY);
     // Jednostka moze byc zawsze LightGrey
@@ -698,7 +763,8 @@ void LCD_PUT(const DisplayData* data) {
   }
 
   unsigned long end_time = micros();
-  PrintAcel(data);
+  //PrintAcel(data);
+  PrintGyroState();
 
   // === ZMODYFIKOWANY KOD ===
   Serial.printf("LCD time %lu/%lu/%lu us)\n", mid_time - start_time, end_time - mid_time, end_time - start_time);
