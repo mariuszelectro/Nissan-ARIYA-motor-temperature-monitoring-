@@ -198,47 +198,53 @@ int PrintAcel(const DisplayData* data) {
 //     tft.fillRect(RECT_X, RECT_Y, RECT_WIDTH, RECT_HEIGHT, ST77XX_RED);
 //   }
 // }
-int PrintGyroState() {
+void PrintGyroState(bool* angleChangedPtr) {
   float gyroBias;
-  static bool memMode = true;
-  // Pobieramy status trybu (true = Ruch/DYNAMIKA)
+  static bool memMode = false; // Inicjalizacja na FALSE (Tryb KOREKCJA)
+  
+  // 1. OBLICZ AKTUALNY STAN
   bool isDynamic = getGyroState(&gyroBias);
 
-  if (isDynamic == memMode) {
-    return 0;  //nic nie rysujemy
+  // 2. SPRAWDŹ I USTAW FLAGĘ TYLKO, GDY STAN FILTRA SIĘ ZMIENIŁ
+  if (isDynamic != memMode) {
+      memMode = isDynamic; // Zapamiętujemy nowy stan
+      // Ustawiamy flagę poprzez wskaźnik. Jeśli tryb się zmieni, WYMAGAMY RYSOWANIA.
+      *angleChangedPtr = true; 
   }
-  // ------------------------------------------------------------------
-  // PARAMETRY BELKI: LOKALNE dla bufora angleWindowBufferGFX
-  // ------------------------------------------------------------------
-  const int PADDING = 10;  // Mały margines od krawędzi
-  const int WIDTH = 28;    // Szerokość belki
-  const int HEIGHT = 5;    // Wysokość belki
+  
+  // 3. WYZWOLENIE WARUNKU RYSOWANIA DO BUFORA
+  // Rysujemy belkę, ZAWSZE jeśli bufor okna kąta ma być wyświetlony.
+  // Bufor jest wyświetlony tylko jeśli *angleChangedPtr jest true (lub inna flaga kąta)
+  
+  // Weryfikacja: jeśli flaga angleChanged jest false, to okno kąta i tak się nie zaktualizuje,
+  // więc nie ma sensu go rysować.
+  if (*angleChangedPtr == false) {
+      return; 
+  }
 
-  // Obliczenie LOKALNEJ pozycji X i Y dla prawego dolnego rogu bufora
+  // ------------------------------------------------------------------
+  // PARAMETRY RYSOWANIA (BEZ ZMIAN)
+  // ------------------------------------------------------------------
+  const int PADDING = 10;
+  const int WIDTH = 28;
+  const int HEIGHT = 5;
+
   const int X_POS_LOCAL = ANGLE_WINDOW_WIDTH_PX - WIDTH - PADDING - 25;
   const int Y_POS_LOCAL = ANGLE_WINDOW_HEIGHT_PX - HEIGHT - PADDING;
 
-  // 1. RYSOWANIE BELKI DO BUFORA ANGLE
+  // 4. RYSOWANIE BELKI DO BUFORA (na podstawie AKTUALNEGO stanu)
   if (isDynamic) {
-    // TRYB DYNAMIKA: Czerwony (używamy gotowego koloru)
+    // TRYB DYNAMIKA: Czerwony
     angleWindowBufferGFX.fillRect(X_POS_LOCAL, Y_POS_LOCAL, WIDTH, HEIGHT, ST77XX_RED);
   } else {
-    // TRYB KOREKCJA: Zielony (używamy gotowego koloru)
+    // TRYB KOREKCJA: Zielony
     angleWindowBufferGFX.fillRect(X_POS_LOCAL, Y_POS_LOCAL, WIDTH, HEIGHT, ST77XX_GREEN);
   }
-  memMode = isDynamic;
-
-  // 2. NATYCHMIASTOWE WYŚWIETLENIE CAŁEGO OKNA KĄTA
-  // Obliczamy pozycję X okna kąta na ekranie
-  const int ANGLE_WINDOW_X_START_ON_SCREEN = TEMP_WINDOW_WIDTH_PX + HEIGHT_WINDOW_WIDTH_PX;
-
-  tft.drawRGBBitmap(ANGLE_WINDOW_X_START_ON_SCREEN,
-                    TEST_WINDOWS_Y_START_ON_SCREEN,
-                    angleWindowBufferGFX.getBuffer(),
-                    ANGLE_WINDOW_WIDTH_PX,
-                    ANGLE_WINDOW_HEIGHT_PX);
-  return 1;
+  
+  // WAŻNE: Nie ustawiamy *angleChangedPtr na false, bo musi pozostać true
+  // aż do momentu wyświetlenia okna w LCD_PUT().
 }
+
 
 
 // --- Funkcja aktualizacji LCD ---
@@ -749,6 +755,7 @@ void LCD_PUT(const DisplayData* data) {
     tft.print(currentRssiString_display);
   }
 
+  PrintGyroState(&angleChanged);
   unsigned long mid_time = micros();
   // --- Rysowanie na LCD z buforow i aktualizacje obszarow ---
   tft.drawRGBBitmap(0, GRAPH_Y_START_ON_SCREEN, graphBufferGFX.getBuffer(), SCREEN_WIDTH_ROTATED, GRAPH_AREA_HEIGHT_PX);
@@ -761,10 +768,7 @@ void LCD_PUT(const DisplayData* data) {
   if (angleChanged || angleBgColorChanged || isCalibratingAngleChanged || angleSourceChanged) {
     tft.drawRGBBitmap(TEMP_WINDOW_WIDTH_PX + HEIGHT_WINDOW_WIDTH_PX, TEST_WINDOWS_Y_START_ON_SCREEN, angleWindowBufferGFX.getBuffer(), ANGLE_WINDOW_WIDTH_PX, ANGLE_WINDOW_HEIGHT_PX);
   }
-
   unsigned long end_time = micros();
-  //PrintAcel(data);
-  PrintGyroState();
 
   // === ZMODYFIKOWANY KOD ===
   Serial.printf("LCD time %lu/%lu/%lu us)\n", mid_time - start_time, end_time - mid_time, end_time - start_time);

@@ -49,6 +49,7 @@ static float filtered_accel_z = 0;
 static float roll_offset = 0.0;
 static float g_x_offset = 0.0;  // NOWA: Statyczna wartość grawitacji X (PIONOWA)
 static float g_z_offset = 0.0;  // NOWA: Statyczna wartość grawitacji Z (KIERUNEK JAZDY)
+static float gyro_bias_offset=0.0;  //zapisany dryft z kalibracji 
 
 static const float default_roll_offset = 0.0;
 static const float default_pitch_offset = 0.0;
@@ -122,13 +123,14 @@ void Kalman_update(float newAngle, float newRate, float dt, float current_Q_angl
 // ======================================================================
 
 // Nowa funkcja zapisu: UWZGLĘDNIENIE G_X_OFFSET i G_Z_OFFSET
-static void saveCalibration(float roll, float pitch, float g_x, float g_z) {
+static void saveCalibration(float roll, float pitch, float g_x, float g_z, float g_drift) {
   Serial.println("Rozpoczynam zapis kalibracji do pamieci QSPI...");
   calibration_data_t cal_data = {
     .roll = roll,
     .pitch = pitch,
     .g_x_offset = g_x,
-    .g_z_offset = g_z
+    .g_z_offset = g_z,
+    .gyro_drift =g_drift
   };
   saveConfig(CALIBRATION_BLOCK, &cal_data, sizeof(cal_data));
 }
@@ -141,7 +143,8 @@ static bool loadCalibration() {
     .roll = default_roll_offset,
     .pitch = default_pitch_offset,
     .g_x_offset = default_g_x_offset,
-    .g_z_offset = default_g_z_offset
+    .g_z_offset = default_g_z_offset,
+    .gyro_drift=0
   };
 
   if (loadConfig(CALIBRATION_BLOCK, &loaded_data, &factory_data, sizeof(loaded_data))) {
@@ -149,6 +152,7 @@ static bool loadCalibration() {
     pitch_offset = loaded_data.pitch;
     g_x_offset = loaded_data.g_x_offset;
     g_z_offset = loaded_data.g_z_offset;
+    gyro_bias_offset=0;
     return true;
   }
   // Użycie domyślnych wartości w przypadku niepowodzenia
@@ -227,6 +231,8 @@ bool Call_IMU_Calibration(int write) {
   float cal_accel_x_sum = 0.0;
   float cal_accel_y_sum = 0.0;
   float cal_accel_z_sum = 0.0;
+  float gyro_norm=0.0;
+  float current_gyro_y=0.0;
 
   while (cal_sample_count < 200) {
     // ... (zbieranie probek) ...
@@ -234,10 +240,14 @@ bool Call_IMU_Calibration(int write) {
     float current_accel_y = myIMU.readFloatAccelY();
     float current_accel_z = myIMU.readFloatAccelZ();
 
+
     if (!isnan(current_accel_x) && !isnan(current_accel_y) && !isnan(current_accel_z)) {
       cal_accel_x_sum += current_accel_x;
       cal_accel_y_sum += current_accel_y;
       cal_accel_z_sum += current_accel_z;
+      //gyro_norm += sqrt(current_accel_x * current_accel_x + current_accel_y * current_accel_y + current_accel_z * current_accel_z);
+      current_gyro_y += myIMU.readFloatGyroY(); // <--- ODCZYT ŻYROSKOPU
+
       cal_sample_count++;
       if (cal_sample_count % 20 == 0) {
         Serial.print(".");
@@ -250,6 +260,7 @@ bool Call_IMU_Calibration(int write) {
   if (cal_sample_count > 0) {
     float avg_accel_x = cal_accel_x_sum / cal_sample_count;  // Statyczny Gx
     float avg_accel_z = cal_accel_z_sum / cal_sample_count;  // Statyczny Gz
+    current_gyro_y /=cal_sample_count;                            //dryft zyroskpou
 
     roll_offset = 0.0;
     pitch_offset = atan2(avg_accel_z, avg_accel_x) * 180.0 / PI;
@@ -258,7 +269,7 @@ bool Call_IMU_Calibration(int write) {
     g_z_offset = avg_accel_z;
 
     if (write) {
-      saveCalibration(roll_offset, pitch_offset, g_x_offset, g_z_offset);  // Zapis obu offsetow
+      saveCalibration(roll_offset, pitch_offset, g_x_offset, g_z_offset,current_gyro_y);  // Zapis prametrow motazu orz samego IMU
     }
     Serial.println("Kalibracja IMU zakonczona. Biezaca pozycja ustawiona jako zero.");
     Serial.print("Nowo obliczony Offset Roll: ");
@@ -269,6 +280,9 @@ bool Call_IMU_Calibration(int write) {
     Serial.println(g_x_offset);
     Serial.print("Nowo obliczony G_Z Offset: ");
     Serial.println(g_z_offset);
+    Serial.print("Dryft zyroskopu: ");
+    Serial.println(current_gyro_y);
+
 
     return true;
   } else {
@@ -364,7 +378,7 @@ void CollectImu(void) {
   float accel_y = myIMU.readFloatAccelY();
   float accel_z = myIMU.readFloatAccelZ();
   float gyro_y = myIMU.readFloatGyroY();
-
+  
   // SUMOWANIE DANYCH DIAGNOSTYCZNYCH
   X += accel_x;
   Y += accel_y;
@@ -398,10 +412,10 @@ void CollectImu(void) {
   bool is_gyro_movement = gyro_norm > GYRO_THRESHOLD;
 
   #if 0     //ustawion dla debug
-  // -----------------------------------------------------------------
-  // DEBUGOWANIE W KONSOLI (POPRAWIONE)
-  // -----------------------------------------------------------------
-    // ZAPISZ NORME AKCELEROMETRU DO ZMIENNEJ STATYCZNEJ DLA DEBUGOWANIA
+  -----------------------------------------------------------------
+  DEBUGOWANIE W KONSOLI (POPRAWIONE)
+  -----------------------------------------------------------------
+    ZAPISZ NORME AKCELEROMETRU DO ZMIENNEJ STATYCZNEJ DLA DEBUGOWANIA
   accel_norm_debug = accel_norm;  // <-- Używamy statycznej zmiennej
   Serial.print("Norma: ");
   Serial.print(accel_norm, 4);  // Norma przyspieszenia, 4 miejsca po przecinku
@@ -446,6 +460,6 @@ void CollectImu(void) {
   float accel_angle_corrected = accel_angle_raw - pitch_offset;
 
   // 4. AKTUALIZACJA FILTRU KALMANA
-  Kalman_update(accel_angle_corrected, gyro_y, dt, current_Q_angle, current_Q_bias);
+  Kalman_update(accel_angle_corrected, (gyro_y-gyro_bias_offset), dt, current_Q_angle, current_Q_bias);
   probe++;
 }

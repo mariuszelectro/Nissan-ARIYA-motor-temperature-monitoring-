@@ -10,6 +10,7 @@ typedef struct {
     float pitch;
     float g_x_offset; // Statyczna składowa Grawitacji na osi X (powinna być bliska 1G)
     float g_z_offset; // Statyczna składowa Grawitacji na osi Z (np. 0.3G)
+    float gyro_drift;   //zmierzona wartośc dryftu
 } calibration_data_t;
 
 
@@ -23,7 +24,7 @@ typedef struct {
 // -----------------------------------------------------------------
 #define ACCEL_LPF_ALPHA_set     0.1f    // Umiarkowana filtracja
 #define ACCEL_TOLERANCE_set     0.35f   // Próg Normy: Podniesiony, aby ignorować wibracje samochodu (do 0.35g)
-#define GYRO_THRESHOLD_set      5.0f    // Próg: Wyższy niż stały dryf (5.0 deg/s) na stole zmierzono ok 4 deg/s
+#define GYRO_THRESHOLD_set      4.3f    // Próg: Wyższy niż stały dryf (5.0 deg/s) na stole zmierzono ok 4 deg/s
 // -----------------------------------------------------------------
 // TRYB KOREKCJA (Postój) - Duże zaufanie do Accel
 // -----------------------------------------------------------------
@@ -33,7 +34,7 @@ typedef struct {
 // -----------------------------------------------------------------
 // TRYB DYNAMIKA (Ruch) - KLUCZOWE ZMIANY dla WIBRACJI SAMOCHODU
 // -----------------------------------------------------------------
-#define R_measure_high_set      50.0f  // KLUCZOWY: CAŁKOWITE IGNOROWANIE Accel (bardzo wysoki R, ignoruje wibracje)
+#define R_measure_high_set      65.0f  // KLUCZOWY: CAŁKOWITE IGNOROWANIE Accel (bardzo wysoki R, ignoruje wibracje)
 #define Q_bias_high_set         0.07f   // Agresywna estymacja dryfu
 // -----------------------------------------------------------------
 // DEFAULTY
