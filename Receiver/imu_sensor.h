@@ -4,6 +4,9 @@
 #include <Arduino.h>
 #include <LSM6DS3.h>
 
+//Opis montażu czujnika IMU są zamienine osie gdzie rzeczywista oś Z odopwiada z mierzone pochylenia samochodu 
+//os y to pochylnie na boki samochodu a oś x to grawitacja
+
 // Nowa struktura do zapisu kalibracji, uwzględniająca offsety Grawitacji dla osi X i Z
 typedef struct {
     float roll;
@@ -11,6 +14,7 @@ typedef struct {
     float g_x_offset; // Statyczna składowa Grawitacji na osi X (powinna być bliska 1G)
     float g_z_offset; // Statyczna składowa Grawitacji na osi Z (np. 0.3G)
     float gyro_drift;   //zmierzona wartośc dryftu
+    float altitude_offset;     //wartos wyskokosci zmierzonej podczas kalibracji
 } calibration_data_t;
 
 
@@ -65,7 +69,7 @@ bool imu_init();
  * @param write Czy zapisac dane kalibracji do pamieci flash.
  * @return true jesli kalibracja została zakończona, false w przeciwnym razie.
  */
-bool Call_IMU_Calibration(int write);
+bool Call_IMU_Calibration(int write,float altitude);
 
 /**
  * @brief Odczytuje uśrednione dane z IMU i zwraca obliczone kąty.

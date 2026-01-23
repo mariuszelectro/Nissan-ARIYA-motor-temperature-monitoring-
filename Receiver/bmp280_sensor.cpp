@@ -13,11 +13,11 @@ static float seaLevelhPa = 1013.25;
  * @brief Ustawia ciśnienie na poziomie morza na podstawie aktualnego ciśnienia i zadanej wysokości.
  * @param meters Wysokość bezwzględna w metrach (np. z GPS).
  */
-void setAbsoluteHighest(int meters) {
+float setAbsoluteHighest(int meters) {
     float currentPressurePa = bmp.readPressure();
     if (isnan(currentPressurePa)) {
         Serial.println(F("Nie udalo sie odczytac cisnienia do kalibracji wysokosci."));
-        return;
+        return 1013.25;
     }
     // Obliczanie ciśnienia na poziomie morza w hPa z Pa
     seaLevelhPa = bmp.seaLevelForAltitude(meters, currentPressurePa / 100.0);
@@ -26,6 +26,7 @@ void setAbsoluteHighest(int meters) {
     Serial.print(F(" m. Cisnienie na poziomie morza ustawione na: "));
     Serial.print(seaLevelhPa);
     Serial.println(F(" hPa"));
+    return seaLevelhPa;
 }
 
 /**
@@ -81,4 +82,13 @@ bool readBmp280Data(Bmp280Data* data) {
     data->pressure = pressure;
     data->altitude = altitude; // Zapisujemy obliczoną wysokość
     return true;
+}
+/**
+ * @brief Odczytuje dane z czujnika BMP280 i zapisuje je do struktury.
+ * @param  odczytany parametr z pamiecie zpisany podczas kalibracji .
+ * @return none
+ */
+void setSavedAltitude(float altitude)
+{
+    seaLevelhPa=altitude;
 }

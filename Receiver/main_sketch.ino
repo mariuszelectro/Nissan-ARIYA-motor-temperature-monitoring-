@@ -130,18 +130,26 @@ void loop() {
     if (currentDisplayData.MainAngle.source == Real) {
       IMUData imuData;
       if (readIMUData(&imuData)) {
-        currentDisplayData.MainAngle.RealAngle = (int)roundf(/*abs*/(imuData.tilt) / 90.0 * 100.0);
-        currentDisplayData.x_acel=imuData.X;
-        currentDisplayData.y_acel=imuData.Y;
-        currentDisplayData.z_acel=imuData.Z;
-        currentDisplayData.MainAngle.Valid=true;
+        // 1. Konwersja stopni na radiany
+        float angleRad = imuData.tilt * PI / 180.0f;
+        
+        // 2. Obliczenie nachylenia: tan(kąt) * 100
+        // To jest standard drogowy (np. 45 stopni = 100%)
+        float slopePercent = tanf(angleRad) * 100.0f;    
+        // 3. Zapisanie wyniku jako liczba całkowita
+        currentDisplayData.MainAngle.RealAngle = (int)roundf(slopePercent);
+        // Kopiowanie pozostałych danych diagnostycznych 
+        currentDisplayData.x_acel = imuData.X;
+        currentDisplayData.y_acel = imuData.Y;
+        currentDisplayData.z_acel = imuData.Z;
+        currentDisplayData.MainAngle.Valid = true;
       }
     }
     if (currentDisplayData.MainCalibrate.CalibrationConuter > 0) {
       currentDisplayData.MainCalibrate.CalibrationConuter--;
       if (Button == true || currentDisplayData.MainCalibrate.RealCalibrate == true) {
-        setAbsoluteHighest(270);  // Kalibracja wysokosci na 270m
-        Call_IMU_Calibration(1);   // Kalibracja zyroskopu z zapisem do QSPI
+        float altitude=setAbsoluteHighest(270);  // Kalibracja wysokosci na 270m odczy parametów cisnienia 
+        Call_IMU_Calibration(1,altitude);   // Kalibracja zyroskopu z zapisem do QSPI oraz zapis parametrów wyskości 
         Serial.print("kalibaracja czujnikow]\n");
         tone(BUZZER_PIN, 500, 100);
         currentDisplayData.MainCalibrate.RealCalibrate = true;
@@ -155,11 +163,11 @@ void loop() {
     // Przetwarzanie i symulacja danych
     ble_task(&currentDisplayData);
     Button = readVirtualButton();
-    if (Button == true) {
-      static int countButton = 0;
-      Serial.printf("Push Button %d\n", ++countButton);
-      tone(BUZZER_PIN, 1000, 10);
-    }
+    // if (Button == true) {
+    //   static int countButton = 0;
+    //   Serial.printf("Push Button %d\n", ++countButton);
+    //   tone(BUZZER_PIN, 1000, 10);
+    // }
     simulateSensorData(&currentDisplayData, currentTime);
     debugPrintSimulatedData(&currentDisplayData);
 

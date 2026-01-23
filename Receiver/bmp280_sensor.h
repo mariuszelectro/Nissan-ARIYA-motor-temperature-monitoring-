@@ -24,6 +24,7 @@ bool initBmp280();
  * @return true jesli odczyt powiodl sie, false w przeciwnym wypadku.
  */
 bool readBmp280Data(Bmp280Data* data);
-void setAbsoluteHighest(int meters);
+float setAbsoluteHighest(int meters);
+void setSavedAltitude(float altitude);
 
 #endif // BMP280_SENSOR_H

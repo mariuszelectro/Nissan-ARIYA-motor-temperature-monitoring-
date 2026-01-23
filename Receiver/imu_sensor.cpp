@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <LSM6DS3.h>
+#include "bmp280_sensor.h"      //tylko do ładowania konfiguracji 
 #include "ConfigurationStorage.h"  // Używa funkcji saveConfig i loadConfig
 
 #define CTRL8_XL 0x17
@@ -42,6 +43,8 @@ static float X=0, Y=0, Z=0;
 static int probe = 0;
 static float filtered_accel_x = 0;
 static float filtered_accel_z = 0;
+static uint32_t lastTime = 0;           // Do obliczeń dt
+static const float GYRO_TOLERANCE = GYRO_THRESHOLD_set; // Mapowanie Twojej definicji z .h
 
 // ======================================================================
 // ZMIENNE KALIBRACYJNE (NOWA STRUKTURA)
@@ -123,14 +126,15 @@ void Kalman_update(float newAngle, float newRate, float dt, float current_Q_angl
 // ======================================================================
 
 // Nowa funkcja zapisu: UWZGLĘDNIENIE G_X_OFFSET i G_Z_OFFSET
-static void saveCalibration(float roll, float pitch, float g_x, float g_z, float g_drift) {
+static void saveCalibration(float roll, float pitch, float g_x, float g_z, float g_drift,float altitude) {
   Serial.println("Rozpoczynam zapis kalibracji do pamieci QSPI...");
   calibration_data_t cal_data = {
     .roll = roll,
     .pitch = pitch,
     .g_x_offset = g_x,
     .g_z_offset = g_z,
-    .gyro_drift =g_drift
+    .gyro_drift =g_drift,
+    .altitude_offset=altitude,
   };
   saveConfig(CALIBRATION_BLOCK, &cal_data, sizeof(cal_data));
 }
@@ -152,7 +156,8 @@ static bool loadCalibration() {
     pitch_offset = loaded_data.pitch;
     g_x_offset = loaded_data.g_x_offset;
     g_z_offset = loaded_data.g_z_offset;
-    gyro_bias_offset=0;
+    gyro_bias_offset = loaded_data.gyro_drift;
+    setSavedAltitude(loaded_data.altitude_offset);
     return true;
   }
   // Użycie domyślnych wartości w przypadku niepowodzenia
@@ -172,7 +177,8 @@ bool LoadImuCalibration(void) {
     Serial.println(g_x_offset);
     Serial.print("Offset G_Z: ");
     Serial.println(g_z_offset);
-    Kalman_init(pitch_offset);
+    //Kalman_init(pitch_offset);
+    Kalman_init(0.0);
     return true;
   } else {
     Serial.println("Brak danych kalibracyjnych w pamieci. Uzycie wartosci domyslnych.");
@@ -225,7 +231,7 @@ void setCallIMUasZero(void) {
 }
 
 // Zmodyfikowana funkcja kalibracji: ZAPIS OBU WARTOSCI (G_X i G_Z)
-bool Call_IMU_Calibration(int write) {
+bool Call_IMU_Calibration(int write, float altitude) {
   Serial.println(F("Rozpoczeto kalibracje. Trzymaj uklad nieruchomo."));
   int cal_sample_count = 0;
   float cal_accel_x_sum = 0.0;
@@ -269,7 +275,7 @@ bool Call_IMU_Calibration(int write) {
     g_z_offset = avg_accel_z;
 
     if (write) {
-      saveCalibration(roll_offset, pitch_offset, g_x_offset, g_z_offset,current_gyro_y);  // Zapis prametrow motazu orz samego IMU
+      saveCalibration(roll_offset, pitch_offset, g_x_offset, g_z_offset,current_gyro_y,altitude);  // Zapis prametrow motazu orz samego IMU
     }
     Serial.println("Kalibracja IMU zakonczona. Biezaca pozycja ustawiona jako zero.");
     Serial.print("Nowo obliczony Offset Roll: ");
@@ -282,7 +288,7 @@ bool Call_IMU_Calibration(int write) {
     Serial.println(g_z_offset);
     Serial.print("Dryft zyroskopu: ");
     Serial.println(current_gyro_y);
-
+    Kalman_init(0.0);
 
     return true;
   } else {
@@ -357,109 +363,183 @@ bool readIMUData(IMUData* data) {
 // ======================================================================
 // 4. GLOWNA PETLA Z LOGIKA ADAPTACYJNA (CollectImu)
 // ======================================================================
+// void CollectImu(void) {
+//   static unsigned long last_collect_time = 0;
+//   unsigned long current_time = micros();
+
+//   if (last_collect_time == 0) {
+//     last_collect_time = current_time;
+//     // Inicjalizacja statycznych filtrow LPF
+//     filtered_accel_x = myIMU.readFloatAccelX();
+//     filtered_accel_z = myIMU.readFloatAccelZ();
+//     return;
+//   }
+
+//   float dt = (current_time - last_collect_time) / 1000000.0f;
+//   last_collect_time = current_time;
+
+//   // Odczyt surowych danych
+//   float accel_x = myIMU.readFloatAccelX();
+//   float accel_y = myIMU.readFloatAccelY();
+//   float accel_z = myIMU.readFloatAccelZ();
+//   float gyro_y = myIMU.readFloatGyroY();
+  
+//   // SUMOWANIE DANYCH DIAGNOSTYCZNYCH
+//   X += accel_x;
+//   Y += accel_y;
+//   Z += accel_z;
+
+//   if (isnan(accel_x) || isnan(accel_z) || isnan(gyro_y)) {
+//     return;
+//   }
+
+//   // ======================================================================
+//   // 2. FILTR LPF
+//   // ======================================================================
+//   // Używamy oryginalnych, przefiltrowanych danych do obliczenia kąta ACCEL
+//   filtered_accel_x = ACCEL_LPF_ALPHA * accel_x + (1.0f - ACCEL_LPF_ALPHA) * filtered_accel_x;
+//   filtered_accel_z = ACCEL_LPF_ALPHA * accel_z + (1.0f - ACCEL_LPF_ALPHA) * filtered_accel_z;
+
+//   // Kąt z Akcelerometru (surowy)
+//   float accel_angle_raw = atan2(filtered_accel_z, filtered_accel_x) * 180.0 / PI;
+
+//   // ======================================================================
+//   // 3. LOGIKA ADAPTACYJNA (Przełączanie trybu)
+//   // ======================================================================
+
+//   // Obliczanie normy (do wykrywania ruchu obrotowego)
+//   float gyro_norm = sqrt(myIMU.readFloatGyroX() * myIMU.readFloatGyroX() + myIMU.readFloatGyroY() * myIMU.readFloatGyroY() + myIMU.readFloatGyroZ() * myIMU.readFloatGyroZ());
+//   // Obliczanie normy (do wykrywania przyspieszenia liniowego)
+//   float accel_norm = sqrt(accel_x * accel_x + accel_y * accel_y + accel_z * accel_z);
+//   // Wskaźnik przyspieszenia liniowego (Norma != 1G)
+//   bool is_linear_accel = abs(accel_norm - 1.0f) > ACCEL_TOLERANCE;
+//   // Wskaźnik ruchu obrotowego
+//   bool is_gyro_movement = gyro_norm > GYRO_THRESHOLD;
+
+//   #if 0     //ustawion dla debug
+//   -----------------------------------------------------------------
+//   DEBUGOWANIE W KONSOLI (POPRAWIONE)
+//   -----------------------------------------------------------------
+//     ZAPISZ NORME AKCELEROMETRU DO ZMIENNEJ STATYCZNEJ DLA DEBUGOWANIA
+//   accel_norm_debug = accel_norm;  // <-- Używamy statycznej zmiennej
+//   Serial.print("Norma: ");
+//   Serial.print(accel_norm, 4);  // Norma przyspieszenia, 4 miejsca po przecinku
+
+//   Serial.print(" | is_linear_accel: ");
+//   Serial.print(is_linear_accel ? "TRUE (Ruch)" : "FALSE (Postój)");
+
+//   Serial.print(" | is_gyro_movement: ");
+//   Serial.print(is_gyro_movement ? "TRUE (Ruch)" : "FALSE (Postój)");
+
+//   Serial.print(" | Tryb MOVMENT: ");
+//   Serial.println(movment ? "DYNAMICZNY (Czerwony)" : "KOREKCJA (Zielony)");
+
+//   Serial.print(" | GyroNorm: ");
+//   Serial.print(gyro_norm, 4);  // Wydrukuj normę żyroskopu
+//   // -----------------------------------------------------------------
+//   #endif
+
+//   float current_Q_bias;
+//   float current_Q_angle = Q_angle_base;
+
+//   // PRZELACZANIE TRYBU ADAPTACYJNEGO
+//   // Polegamy tylko na Normie Accel i Normie Gyro!
+//   if (is_linear_accel || is_gyro_movement) {
+//     // TRYB DYNAMIKA (Ruch) - Ufamy żyroskopowi (wysokie R_measure)
+//     R_measure = R_measure_high;
+//     current_Q_bias = Q_bias_high;
+//     movment = true;
+
+//   } else {
+//     // TRYB KOREKCJA (Postój/Stała Prędkość) - Ufamy akcelerometrowi (niskie R_measure)
+//     R_measure = R_measure_low;
+//     current_Q_bias = Q_bias_low;
+//     movment = false;
+//   }
+
+
+//   // -------------------------------------------------------------
+//   // KOREKTA KATA ACCEL (ZEROWANIE offsetu montazu)
+//   // -------------------------------------------------------------
+//   // Wartość pitch_offset (z kalibracji) jest odejmowana, aby skompensować montaż.
+//   float accel_angle_corrected = accel_angle_raw - pitch_offset;
+
+//   // 4. AKTUALIZACJA FILTRU KALMANA
+//   Kalman_update(accel_angle_corrected, (gyro_y-gyro_bias_offset), dt, current_Q_angle, current_Q_bias);
+//   probe++;
+//}
 
 void CollectImu(void) {
-  static unsigned long last_collect_time = 0;
-  unsigned long current_time = micros();
+  // 1. Obsługa czasu (dt)
+  uint32_t now = micros();
+  if (lastTime == 0) lastTime = now;
+  float dt = (float)(now - lastTime) / 1000000.0f;
+  lastTime = now;
 
-  if (last_collect_time == 0) {
-    last_collect_time = current_time;
-    // Inicjalizacja statycznych filtrow LPF
-    filtered_accel_x = myIMU.readFloatAccelX();
-    filtered_accel_z = myIMU.readFloatAccelZ();
-    return;
-  }
+  if (dt <= 0 || dt > 0.5) dt = 0.01;
 
-  float dt = (current_time - last_collect_time) / 1000000.0f;
-  last_collect_time = current_time;
+  // 2. Odczyt surowych danych
+  float raw_accel_x = myIMU.readFloatAccelX();
+  float raw_accel_y = myIMU.readFloatAccelY();
+  float raw_accel_z = myIMU.readFloatAccelZ();
+  float raw_gyro_y  = myIMU.readFloatGyroY();
 
-  // Odczyt surowych danych
-  float accel_x = myIMU.readFloatAccelX();
-  float accel_y = myIMU.readFloatAccelY();
-  float accel_z = myIMU.readFloatAccelZ();
-  float gyro_y = myIMU.readFloatGyroY();
-  
-  // SUMOWANIE DANYCH DIAGNOSTYCZNYCH
-  X += accel_x;
-  Y += accel_y;
-  Z += accel_z;
+  if (isnan(raw_accel_x) || isnan(raw_accel_z) || isnan(raw_gyro_y)) return;
 
-  if (isnan(accel_x) || isnan(accel_z) || isnan(gyro_y)) {
-    return;
-  }
+  // 3. KOREKCJA (Offsety z Twojej kalibracji)
+  float clean_gyro_y = raw_gyro_y - gyro_bias_offset;
+  float clean_accel_x = raw_accel_x - (g_x_offset - 1.0f);
+  float clean_accel_z = raw_accel_z - g_z_offset;
 
-  // ======================================================================
-  // 2. FILTR LPF
-  // ======================================================================
-  // Używamy oryginalnych, przefiltrowanych danych do obliczenia kąta ACCEL
-  filtered_accel_x = ACCEL_LPF_ALPHA * accel_x + (1.0f - ACCEL_LPF_ALPHA) * filtered_accel_x;
-  filtered_accel_z = ACCEL_LPF_ALPHA * accel_z + (1.0f - ACCEL_LPF_ALPHA) * filtered_accel_z;
+  // Aktualizacja Twoich zmiennych diagnostycznych do readIMUData
+  X += clean_accel_x; 
+  Y += raw_accel_y;
+  Z += clean_accel_z;
+  probe++;
 
-  // Kąt z Akcelerometru (surowy)
-  float accel_angle_raw = atan2(filtered_accel_z, filtered_accel_x) * 180.0 / PI;
+  // 4. FILTRACJA LPF
+  filtered_accel_x = ACCEL_LPF_ALPHA * clean_accel_x + (1.0f - ACCEL_LPF_ALPHA) * filtered_accel_x;
+  filtered_accel_z = ACCEL_LPF_ALPHA * clean_accel_z + (1.0f - ACCEL_LPF_ALPHA) * filtered_accel_z;
 
-  // ======================================================================
-  // 3. LOGIKA ADAPTACYJNA (Przełączanie trybu)
-  // ======================================================================
-
-  // Obliczanie normy (do wykrywania ruchu obrotowego)
-  float gyro_norm = sqrt(myIMU.readFloatGyroX() * myIMU.readFloatGyroX() + myIMU.readFloatGyroY() * myIMU.readFloatGyroY() + myIMU.readFloatGyroZ() * myIMU.readFloatGyroZ());
-  // Obliczanie normy (do wykrywania przyspieszenia liniowego)
-  float accel_norm = sqrt(accel_x * accel_x + accel_y * accel_y + accel_z * accel_z);
-  // Wskaźnik przyspieszenia liniowego (Norma != 1G)
+  // 5. OBLICZENIE NORMY (Wykorzystanie Twojego ACCEL_TOLERANCE)
+  float accel_norm = sqrt(clean_accel_x * clean_accel_x + raw_accel_y * raw_accel_y + clean_accel_z * clean_accel_z);
   bool is_linear_accel = abs(accel_norm - 1.0f) > ACCEL_TOLERANCE;
-  // Wskaźnik ruchu obrotowego
-  bool is_gyro_movement = gyro_norm > GYRO_THRESHOLD;
+  bool is_gyro_movement = abs(clean_gyro_y) > GYRO_TOLERANCE;
 
-  #if 0     //ustawion dla debug
-  -----------------------------------------------------------------
-  DEBUGOWANIE W KONSOLI (POPRAWIONE)
-  -----------------------------------------------------------------
-    ZAPISZ NORME AKCELEROMETRU DO ZMIENNEJ STATYCZNEJ DLA DEBUGOWANIA
-  accel_norm_debug = accel_norm;  // <-- Używamy statycznej zmiennej
-  Serial.print("Norma: ");
-  Serial.print(accel_norm, 4);  // Norma przyspieszenia, 4 miejsca po przecinku
+  // 6. OBLICZENIE KĄTA (Z uwzględnieniem Twojego pitch_offset)
+  float accel_angle_raw = (atan2(filtered_accel_z, filtered_accel_x) * 180.0 / PI);
 
-  Serial.print(" | is_linear_accel: ");
-  Serial.print(is_linear_accel ? "TRUE (Ruch)" : "FALSE (Postój)");
+  // 7. FILTR KALMANA
+  kalman_angle += dt * (clean_gyro_y - kalman_bias);
 
-  Serial.print(" | is_gyro_movement: ");
-  Serial.print(is_gyro_movement ? "TRUE (Ruch)" : "FALSE (Postój)");
+  // Macierz P i Innowacja (Twoje stałe Q_angle_base, Q_bias_low)
+  kalman_P[0][0] += dt * (dt * kalman_P[1][1] - kalman_P[0][1] - kalman_P[1][0] + Q_angle_base);
+  kalman_P[0][1] -= dt * kalman_P[1][1];
+  kalman_P[1][0] -= dt * kalman_P[1][1];
+  kalman_P[1][1] += Q_bias_low * dt;
 
-  Serial.print(" | Tryb MOVMENT: ");
-  Serial.println(movment ? "DYNAMICZNY (Czerwony)" : "KOREKCJA (Zielony)");
+  float S = kalman_P[0][0] + R_measure;
+  float K[2];
+  K[0] = kalman_P[0][0] / S;
+  K[1] = kalman_P[1][0] / S;
 
-  Serial.print(" | GyroNorm: ");
-  Serial.print(gyro_norm, 4);  // Wydrukuj normę żyroskopu
-  // -----------------------------------------------------------------
-  #endif
+  float y = accel_angle_raw - kalman_angle;
+  kalman_angle += K[0] * y;
+  kalman_bias += K[1] * y;
 
-  float current_Q_bias;
-  float current_Q_angle = Q_angle_base;
+  float P00_temp = kalman_P[0][0];
+  float P01_temp = kalman_P[0][1];
+  kalman_P[0][0] -= K[0] * P00_temp;
+  kalman_P[0][1] -= K[0] * P01_temp;
+  kalman_P[1][0] -= K[1] * P00_temp;
+  kalman_P[1][1] -= K[1] * P01_temp;
 
-  // PRZELACZANIE TRYBU ADAPTACYJNEGO
-  // Polegamy tylko na Normie Accel i Normie Gyro!
+  // 8. ADAPTACYJNE R_MEASURE (Tryby MOVMENT)
   if (is_linear_accel || is_gyro_movement) {
-    // TRYB DYNAMIKA (Ruch) - Ufamy żyroskopowi (wysokie R_measure)
     R_measure = R_measure_high;
-    current_Q_bias = Q_bias_high;
     movment = true;
-
   } else {
-    // TRYB KOREKCJA (Postój/Stała Prędkość) - Ufamy akcelerometrowi (niskie R_measure)
     R_measure = R_measure_low;
-    current_Q_bias = Q_bias_low;
     movment = false;
   }
-
-
-  // -------------------------------------------------------------
-  // KOREKTA KATA ACCEL (ZEROWANIE offsetu montazu)
-  // -------------------------------------------------------------
-  // Wartość pitch_offset (z kalibracji) jest odejmowana, aby skompensować montaż.
-  float accel_angle_corrected = accel_angle_raw - pitch_offset;
-
-  // 4. AKTUALIZACJA FILTRU KALMANA
-  Kalman_update(accel_angle_corrected, (gyro_y-gyro_bias_offset), dt, current_Q_angle, current_Q_bias);
-  probe++;
 }
